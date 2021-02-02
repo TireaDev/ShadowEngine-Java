@@ -1,6 +1,6 @@
 package com.tireadev.shadowengine;
 
-public class Main {
+public class Launch {
     public static void main(String[] args) {
 
     }
