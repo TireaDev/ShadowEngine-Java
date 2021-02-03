@@ -2,18 +2,10 @@ package com.tireadev.shadowengine.event;
 
 public class KeyEvent {
 
-    static final int SIZE = 256;
+    public static final int LAST = 256;
 
-    static boolean[] keys = new boolean[SIZE];
-    static boolean[] last_keys = new boolean[SIZE];
-
-    public static final int KEY_FIRST = 0;
-    public static final int KEY_LAST = SIZE;
-
-    public static final int KEY_W = 'w';
-    public static final int KEY_A = 'a';
-    public static final int KEY_S = 's';
-    public static final int KEY_D = 'd';
+    static boolean[] keys = new boolean[LAST];
+    static boolean[] last_keys = new boolean[LAST];
 
     public static boolean keyDown(int key) {
         return keys[key];
