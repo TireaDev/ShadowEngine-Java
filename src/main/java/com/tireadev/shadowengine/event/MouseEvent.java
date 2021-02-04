@@ -2,17 +2,13 @@ package com.tireadev.shadowengine.event;
 
 public class MouseEvent {
 
-    static final int SIZE = 3;
+    public static final int LAST = 3;
 
-    static boolean[] buttons = new boolean[SIZE];
-    static boolean[] last_buttons = new boolean[SIZE];
+    static boolean[] buttons = new boolean[LAST];
+    static boolean[] last_buttons = new boolean[LAST];
 
     static int mouseX = 0, mouseY = 0;
     static int scrollX = 0, scrollY = 0;
-
-    public static final int MOUSE_1 = 0;
-    public static final int MOUSE_2 = 1;
-    public static final int MOUSE_3 = 2;
 
     public static boolean mouseDown(int button) {
         return buttons[button];
