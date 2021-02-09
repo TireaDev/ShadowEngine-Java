@@ -5,12 +5,22 @@ import com.tireadev.shadowengine.ShadowEngine;
 public class Example extends ShadowEngine {
 
     @Override
-    public void start() {
+    public void onAwake() {
 
     }
 
     @Override
-    public void update() {
+    public void onStart() {
+
+    }
+
+    @Override
+    public void onUpdate() {
+
+    }
+
+    @Override
+    public void onClose() {
 
     }
 
@@ -18,8 +28,8 @@ public class Example extends ShadowEngine {
 
     public static void main(String[] args) {
         Example demo = new Example();
-        if (demo.construct(256*2, 240*2, "demo")) {
-            demo.run();
+        if (demo.construct(512, 480, "demo")) {
+            demo.start();
         }
     }
 }
