@@ -7,10 +7,10 @@ import static org.lwjgl.glfw.GLFW.*;
 public abstract class ShadowEngine {
 
     long window;
-    boolean running;
 
-    public abstract void start();
-    public abstract void update();
+    public abstract void onStart();
+    public abstract void onUpdate();
+    public abstract void onClose();
 
     public boolean construct(int width, int height, String title) {
         if (!glfwInit()) return false;
@@ -31,19 +31,19 @@ public abstract class ShadowEngine {
         return true;
     }
 
-    public void run() {
-        start();
-        running = true;
-        while (running) {
-            update();
+    public void start() {
+        onStart();
+        while (!glfwWindowShouldClose(window)) {
+            onUpdate();
             glfwPollEvents();
             glfwSwapBuffers(window);
         }
+        onClose();
         glfwDestroyWindow(window);
         glfwTerminate();
     }
 
     public void close() {
-        running = false;
+        glfwSetWindowShouldClose(window, true);
     }
 }
