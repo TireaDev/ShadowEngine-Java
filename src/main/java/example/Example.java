@@ -1,4 +1,4 @@
-package com.tireadev.example;
+package example;
 
 import com.tireadev.shadowengine.ShadowEngine;
 
