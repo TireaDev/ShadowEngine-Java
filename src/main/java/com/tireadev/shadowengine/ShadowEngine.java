@@ -7,6 +7,7 @@ import static org.lwjgl.glfw.GLFW.*;
 public abstract class ShadowEngine {
 
     // Abstraction ======================================================
+    public abstract void onAwake();
     public abstract void onStart();
     public abstract void onUpdate();
     public abstract void onClose();
@@ -46,6 +47,8 @@ public abstract class ShadowEngine {
         glfwSetScrollCallback(window, (window1, xoffset, yoffset) -> {
             scrollX = (int) xoffset; scrollY = (int) yoffset;
         });
+
+        onAwake();
 
         return true;
     }

@@ -5,6 +5,11 @@ import com.tireadev.shadowengine.ShadowEngine;
 public class Example extends ShadowEngine {
 
     @Override
+    public void onAwake() {
+
+    }
+
+    @Override
     public void onStart() {
 
     }
