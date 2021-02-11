@@ -17,13 +17,15 @@ public abstract class ShadowEngine {
     // Runnable =======================================================
     long window;
 
-    int width, height;
+    public int width, height;
+    public String title;
 
     public boolean construct(int width, int height, String title) {
         if (!glfwInit()) return false;
 
         this.width = width;
         this.height = height;
+        this.title = title;
 
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_VISIBLE, 0);
