@@ -300,4 +300,24 @@ public abstract class ShadowEngine {
             for (int j = y; j <= y2; j++)
                 draw(i, j, c);
     }
+
+    public void drawCircle(int x, int y, int r, byte[] c) {
+        drawCircle(x, y, r, 2, c);
+    }
+    public void drawCircle(int x, int y, int r, int step, byte[] c) {
+        if (r < 0 || step > 360) return;
+
+        double degToRad = Math.PI / 180;
+        int i, x1, y1, x2 = 0, y2 = r;
+
+        for (i = step; i < 360; i+=step) {
+            x1 = (int)(r * Math.cos((i+90) * degToRad));
+            y1 = (int)(r * Math.sin((i+90) * degToRad));
+            drawLine(x + x1, y + y1, x + x2, y + y2, c);
+            x2 = x1;
+            y2 = y1;
+        }
+
+        drawLine(x, y + r, x + x2, y + y2, c);
+    }
 }
