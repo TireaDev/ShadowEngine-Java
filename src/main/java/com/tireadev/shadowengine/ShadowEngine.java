@@ -1,5 +1,6 @@
 package com.tireadev.shadowengine;
 
+import com.tireadev.shadowengine.math.Vec2i;
 import org.lwjgl.opengl.GL;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -173,6 +174,10 @@ public abstract class ShadowEngine {
     public static final byte[] BRIGHT_YELLOW  = new byte[] { (byte)249, (byte)241, (byte)165, (byte) 255 };
     public static final byte[] WHITE          = new byte[] { (byte)242, (byte)242, (byte)242, (byte) 255 };
 
+
+    public void draw(Vec2i p, byte[] c) {
+        draw(p.x, p.y, c);
+    }
     public void draw(int x, int y, byte[] c) {
         float fx = 2f*x / width - 1;
         float fy = 2f*y / height - 1;
@@ -183,6 +188,9 @@ public abstract class ShadowEngine {
         glEnd();
     }
 
+    public void drawLine(Vec2i p1, Vec2i p2, byte[] c) {
+        drawLine(p1.x, p1.y, p2.x, p2.y, c);
+    }
     public void drawLine(int x1, int y1, int x2, int y2, byte[] c) {
         int x, y, dx, dy, dx1, dy1, px, py, xe, ye, i;
         dx = x2 - x1;
@@ -244,12 +252,21 @@ public abstract class ShadowEngine {
         }
     }
 
+    public void drawTriangle(Vec2i p1, Vec2i p2, Vec2i p3, byte[] c) {
+        drawTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c);
+    }
     public void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, byte[] c) {
         drawLine(x1, y1, x2, y2, c);
         drawLine(x2, y2, x3, y3, c);
         drawLine(x3, y3, x1, y1, c);
     }
 
+    public void drawRect(Vec2i p1, Vec2i p2, byte[] c) {
+        drawRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y, c);
+    }
+    public void drawRect(Vec2i p, int w, int h, byte[] c) {
+        drawRect(p.x, p.y, w, h, c);
+    }
     public void drawRect(int x, int y, int w, int h, byte[] c) {
         drawLine(x, y, x + w, y, c);
         drawLine(x + w, y, x + w, y + h, c);
@@ -257,9 +274,27 @@ public abstract class ShadowEngine {
         drawLine(x, y + h, x, y, c);
     }
 
+    public void fillRect(Vec2i p1, Vec2i p2, byte[] c) {
+        fillRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y, c);
+    }
+    public void fillRect(Vec2i p, int w, int h, byte[] c) {
+        fillRect(p.x, p.y, w, h, c);
+    }
     public void fillRect(int x, int y, int w, int h, byte[] c) {
         int x2 = x + w;
         int y2 = y + h;
+
+        if (x2 < x) {
+            int tmp = x2;
+            x2 = x;
+            x = tmp;
+        }
+
+        if (y2 < y) {
+            int tmp = y2;
+            y2 = y;
+            y = tmp;
+        }
 
         for (int i = x; i <= x2; i++)
             for (int j = y; j <= y2; j++)
