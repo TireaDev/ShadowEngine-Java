@@ -1,6 +1,5 @@
 package com.tireadev.shadowengine;
 
-import com.tireadev.shadowengine.math.Vec2i;
 import org.lwjgl.opengl.GL;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -175,9 +174,8 @@ public abstract class ShadowEngine {
     public static final byte[] WHITE          = new byte[] { (byte)242, (byte)242, (byte)242, (byte) 255 };
 
 
-    public void draw(Vec2i p, byte[] c) {
-        draw(p.x, p.y, c);
-    }
+    static final double pi180 = Math.PI / 180;
+
     public void draw(int x, int y, byte[] c) {
         float fx = 2f*x / width - 1;
         float fy = 2f*y / height - 1;
@@ -188,9 +186,6 @@ public abstract class ShadowEngine {
         glEnd();
     }
 
-    public void drawLine(Vec2i p1, Vec2i p2, byte[] c) {
-        drawLine(p1.x, p1.y, p2.x, p2.y, c);
-    }
     public void drawLine(int x1, int y1, int x2, int y2, byte[] c) {
         int x, y, dx, dy, dx1, dy1, px, py, xe, ye, i;
         dx = x2 - x1;
@@ -252,21 +247,102 @@ public abstract class ShadowEngine {
         }
     }
 
-    public void drawTriangle(Vec2i p1, Vec2i p2, Vec2i p3, byte[] c) {
-        drawTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c);
-    }
     public void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, byte[] c) {
         drawLine(x1, y1, x2, y2, c);
         drawLine(x2, y2, x3, y3, c);
         drawLine(x3, y3, x1, y1, c);
     }
 
-    public void drawRect(Vec2i p1, Vec2i p2, byte[] c) {
-        drawRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y, c);
+    public void fillTriangle(int x1, int y1, int x2, int y2, int x3, int y3, byte[] c) {
+
+        int tmp;
+
+        if (y1 > y2) {
+            tmp = y1;
+            y1  = y2;
+            y2  = tmp;
+
+            tmp = x1;
+            x1  = x2;
+            x2  = tmp;
+        }
+
+        if (y2 > y3) {
+            tmp = y2;
+            y2 = y3;
+            y3 = tmp;
+
+            tmp = x2;
+            x2 = x3;
+            x3 = tmp;
+        }
+
+        if (y1 > y2) {
+            tmp = y1;
+            y1  = y2;
+            y2  = tmp;
+
+            tmp = x1;
+            x1  = x2;
+            x2  = tmp;
+        }
+
+        if (y2 == y3) {
+            float is1 = (x2 - x1) / (float)(y2 - y1);
+            float is2 = (x3 - x1) / (float)(y3 - y1);
+
+            float cx1 = x1;
+            float cx2 = x1;
+
+            for (int sy = y1; sy <= y2; sy++) {
+                drawLine((int)cx1, sy, (int)cx2, sy, c);
+                cx1 += is1;
+                cx2 += is2;
+            }
+        } else if (y1 == y2) {
+            float is1 = (x3 - x1) / (float)(y3 - y1);
+            float is2 = (x3 - x2) / (float)(y3 - y2);
+
+            float cx1 = x3;
+            float cx2 = x3;
+
+            for (int sy = y3; sy > y1; sy--) {
+                drawLine((int)cx1, sy, (int)cx2, sy, c);
+                cx1 -= is1;
+                cx2 -= is2;
+            }
+        } else {
+            int x4, y4;
+
+            x4 = (int)(x1 + ((float)(y2 - y1) / (float)(y3 - y1)) * (x3 - x1));
+            y4 = y2;
+
+            float is1 = (x2 - x1) / (float)(y2 - y1);
+            float is2 = (x4 - x1) / (float)(y4 - y1);
+
+            float cx1 = x1;
+            float cx2 = x1;
+
+            for (int sy = y1; sy <= y2; sy++) {
+                drawLine((int)cx1, sy, (int)cx2, sy, c);
+                cx1 += is1;
+                cx2 += is2;
+            }
+
+            is1 = (x3 - x2) / (float)(y3 - y2);
+            is2 = (x3 - x4) / (float)(y3 - y4);
+
+            cx1 = x3;
+            cx2 = x3;
+
+            for (int sy = y3; sy > y2; sy--) {
+                drawLine((int)cx1, sy, (int)cx2, sy, c);
+                cx1 -= is1;
+                cx2 -= is2;
+            }
+        }
     }
-    public void drawRect(Vec2i p, int w, int h, byte[] c) {
-        drawRect(p.x, p.y, w, h, c);
-    }
+
     public void drawRect(int x, int y, int w, int h, byte[] c) {
         drawLine(x, y, x + w, y, c);
         drawLine(x + w, y, x + w, y + h, c);
@@ -274,12 +350,6 @@ public abstract class ShadowEngine {
         drawLine(x, y + h, x, y, c);
     }
 
-    public void fillRect(Vec2i p1, Vec2i p2, byte[] c) {
-        fillRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y, c);
-    }
-    public void fillRect(Vec2i p, int w, int h, byte[] c) {
-        fillRect(p.x, p.y, w, h, c);
-    }
     public void fillRect(int x, int y, int w, int h, byte[] c) {
         int x2 = x + w;
         int y2 = y + h;
@@ -302,22 +372,29 @@ public abstract class ShadowEngine {
     }
 
     public void drawCircle(int x, int y, int r, byte[] c) {
-        drawCircle(x, y, r, 2, c);
-    }
-    public void drawCircle(int x, int y, int r, int step, byte[] c) {
-        if (r < 0 || step > 360) return;
+        if (r < 0) return;
 
-        double degToRad = Math.PI / 180;
-        int i, x1, y1, x2 = 0, y2 = r;
+        int y1, x1;
 
-        for (i = step; i < 360; i+=step) {
-            x1 = (int)(r * Math.cos((i+90) * degToRad));
-            y1 = (int)(r * Math.sin((i+90) * degToRad));
-            drawLine(x + x1, y + y1, x + x2, y + y2, c);
-            x2 = x1;
-            y2 = y1;
+        for (y1 = r; y1 >= -r; y1--) {
+            x1 = (int)Math.sqrt(r*r - y1*y1);
+            draw(x - x1, y + y1, c);
+            draw(x + x1, y + y1, c);
         }
 
-        drawLine(x, y + r, x + x2, y + y2, c);
+        for (x1 = r; x1 >= -r; x1--) {
+            y1 = (int)Math.sqrt(r*r - x1*x1);
+            draw(x + x1, y + y1, c);
+            draw(x + x1, y - y1, c);
+        }
+    }
+
+    public void fillCircle(int x, int y, int r, byte[] c) {
+        if (r < 0) return;
+        int y1, x1;
+        for (y1 = r; y1 >= -r; y1--) {
+            x1 = (int)Math.sqrt(r*r - y1*y1);
+            drawLine(x - x1, y + y1, x + x1, y + y1, c);
+        }
     }
 }
