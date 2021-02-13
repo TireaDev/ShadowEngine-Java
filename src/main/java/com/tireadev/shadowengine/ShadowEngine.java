@@ -1,5 +1,6 @@
 package com.tireadev.shadowengine;
 
+import com.tireadev.shadowengine.math.Vec2f;
 import com.tireadev.shadowengine.math.Vec2i;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
@@ -49,20 +50,22 @@ public abstract class ShadowEngine {
 
         glfwShowWindow(window);
 
-        glfwSetKeyCallback(window, (window1, key, scancode, action, mods) -> {
-            keys[key] = action == GLFW_PRESS || action == GLFW_REPEAT;
-        });
+        glfwSetKeyCallback(window, (window1, key, scancode, action, mods) ->
+            keys[key] = action == GLFW_PRESS || action == GLFW_REPEAT
+        );
 
-        glfwSetMouseButtonCallback(window, (window1, button, action, mods) -> {
-            buttons[button] = action == GLFW_PRESS;
-        });
+        glfwSetMouseButtonCallback(window, (window1, button, action, mods) ->
+            buttons[button] = action == GLFW_PRESS
+        );
 
         glfwSetCursorPosCallback(window, (window1, xpos, ypos) -> {
-            mouseX = (int) xpos; mouseY = (int) (height - ypos);
+            mouseX = (int) xpos;
+            mouseY = (int) ypos;
         });
 
         glfwSetScrollCallback(window, (window1, xoffset, yoffset) -> {
-            scrollX = (int) xoffset; scrollY = (int) yoffset;
+            scrollX = (float) xoffset;
+            scrollY = (float) yoffset;
         });
 
         onAwake();
@@ -143,7 +146,7 @@ public abstract class ShadowEngine {
     boolean[] buttons_last = new boolean[BUTTON_LAST];
 
     int mouseX = 0, mouseY = 0;
-    int scrollX = 0, scrollY = 0;
+    float scrollX = 0, scrollY = 0;
 
     public boolean mouseDown(int button) {
         return buttons[button];
@@ -169,12 +172,20 @@ public abstract class ShadowEngine {
         return mouseY;
     }
 
-    public int getScrollX() {
+    public Vec2i getMousePos() {
+        return new Vec2i(mouseX, mouseY);
+    }
+
+    public float getScrollX() {
         return scrollX;
     }
 
-    public int getScrollY() {
+    public float getScrollY() {
         return scrollY;
+    }
+
+    public Vec2f getScroll() {
+        return new Vec2f(scrollX, scrollY);
     }
 
 
@@ -210,7 +221,7 @@ public abstract class ShadowEngine {
     }
     public void draw(int x, int y, final byte[] c) {
         float fx = 2f*x / width - 1;
-        float fy = 2f*y / height - 1;
+        float fy = -(2f*y / height - 1);
 
         glBegin(GL_POINTS);
         glColor4ub(c[0], c[1], c[2], c[3]);
