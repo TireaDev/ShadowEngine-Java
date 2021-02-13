@@ -15,7 +15,7 @@ public abstract class ShadowEngine {
     // Abstract =======================================================
     public abstract void onAwake();
     public abstract void onStart();
-    public abstract void onUpdate();
+    public abstract void onUpdate(float deltaTime);
     public abstract void onClose();
 
 
@@ -25,7 +25,10 @@ public abstract class ShadowEngine {
     public int width, height;
     public String title;
 
-    public boolean construct(int width, int height, String title) {
+    long currentTime, oldTime;
+    float deltaTime;
+
+    public boolean construct(int width, int height, String title, boolean vsync, boolean hideCursor) {
         GLFWErrorCallback.createPrint(System.err).set();
 
         if (!glfwInit()) return false;
@@ -46,7 +49,8 @@ public abstract class ShadowEngine {
         glfwMakeContextCurrent(window);
         GL.createCapabilities();
 
-        glfwSwapInterval(1);
+        glfwSwapInterval(vsync ? 1 : 0);
+        glfwSetInputMode(window, GLFW_CURSOR, hideCursor ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_NORMAL);
 
         glfwShowWindow(window);
 
@@ -68,6 +72,7 @@ public abstract class ShadowEngine {
             scrollY = (float) yoffset;
         });
 
+        currentTime = System.nanoTime();
         onAwake();
 
         return true;
@@ -78,7 +83,11 @@ public abstract class ShadowEngine {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
 
-            onUpdate();
+            oldTime = currentTime;
+            currentTime = System.nanoTime();
+            deltaTime = (currentTime - oldTime) / 1000000000f;
+
+            onUpdate(deltaTime);
 
             glfwSwapBuffers(window);
 
@@ -87,6 +96,7 @@ public abstract class ShadowEngine {
 
             scrollX = 0;
             scrollY = 0;
+
         }
         onClose();
 
@@ -98,6 +108,17 @@ public abstract class ShadowEngine {
 
     public void close() {
         glfwSetWindowShouldClose(window, true);
+    }
+
+
+    // Window =========================================================
+    public void setWindowTitle(String title) {
+        glfwSetWindowTitle(window, title);
+        this.title = title;
+    }
+
+    public void updateWindowTitle() {
+        glfwSetWindowTitle(window, this.title);
     }
 
 
