@@ -1,5 +1,7 @@
 package com.tireadev.shadowengine;
 
+import com.tireadev.shadowengine.math.Vec2i;
+import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -7,7 +9,9 @@ import static org.lwjgl.opengl.GL11.*;
 
 public abstract class ShadowEngine {
 
-    // Abstraction ====================================================
+    public static ShadowEngine instance;
+
+    // Abstract =======================================================
     public abstract void onAwake();
     public abstract void onStart();
     public abstract void onUpdate();
@@ -21,7 +25,11 @@ public abstract class ShadowEngine {
     public String title;
 
     public boolean construct(int width, int height, String title) {
+        GLFWErrorCallback.createPrint(System.err).set();
+
         if (!glfwInit()) return false;
+
+        instance = this;
 
         this.width = width;
         this.height = height;
@@ -32,6 +40,7 @@ public abstract class ShadowEngine {
         glfwWindowHint(GLFW_RESIZABLE, 0);
 
         window = glfwCreateWindow(width, height, title, 0, 0);
+        if (window == 0) return false;
 
         glfwMakeContextCurrent(window);
         GL.createCapabilities();
@@ -66,10 +75,6 @@ public abstract class ShadowEngine {
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
 
-            glClear(GL_COLOR_BUFFER_BIT);
-
-            glClearColor(0, 0, 0, 1);
-
             onUpdate();
 
             glfwSwapBuffers(window);
@@ -81,12 +86,30 @@ public abstract class ShadowEngine {
             scrollY = 0;
         }
         onClose();
+
         glfwDestroyWindow(window);
+
         glfwTerminate();
+        glfwSetErrorCallback(null).free();
     }
 
     public void close() {
         glfwSetWindowShouldClose(window, true);
+    }
+
+
+    // Util ===========================================================
+    static final double pi180 = Math.PI / 180;
+
+    public static double degToRad(float deg) {
+        return deg * pi180;
+    }
+
+    public static float[] byteColorToFloat(final byte[] b) {
+        int i, l = b.length;
+        float[] toReturn = new float[l];
+        for (i = 0; i < l; i++) toReturn[i] = Byte.toUnsignedInt(b[i]) / 255f;
+        return toReturn;
     }
 
 
@@ -174,9 +197,18 @@ public abstract class ShadowEngine {
     public static final byte[] WHITE          = new byte[] { (byte)242, (byte)242, (byte)242, (byte) 255 };
 
 
-    static final double pi180 = Math.PI / 180;
+    public void clear(final byte[] c) {
+        clear(byteColorToFloat(c));
+    }
+    public void clear(final float[] c) {
+        glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(c[0], c[1], c[2], c[3]);
+    }
 
-    public void draw(int x, int y, byte[] c) {
+    public void draw(Vec2i pos, final byte[] c) {
+        draw(pos.x, pos.y, c);
+    }
+    public void draw(int x, int y, final byte[] c) {
         float fx = 2f*x / width - 1;
         float fy = 2f*y / height - 1;
 
@@ -186,7 +218,10 @@ public abstract class ShadowEngine {
         glEnd();
     }
 
-    public void drawLine(int x1, int y1, int x2, int y2, byte[] c) {
+    public void drawLine(Vec2i p1, Vec2i p2, final byte[] c) {
+        drawLine(p1.x, p1.y, p2.x, p2.y, c);
+    }
+    public void drawLine(int x1, int y1, int x2, int y2, final byte[] c) {
         int x, y, dx, dy, dx1, dy1, px, py, xe, ye, i;
         dx = x2 - x1;
         dy = y2 - y1;
@@ -247,14 +282,19 @@ public abstract class ShadowEngine {
         }
     }
 
-    public void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, byte[] c) {
+    public void drawTriangle(Vec2i p1, Vec2i p2, Vec2i p3, final byte[] c) {
+        drawTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c);
+    }
+    public void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, final byte[] c) {
         drawLine(x1, y1, x2, y2, c);
         drawLine(x2, y2, x3, y3, c);
         drawLine(x3, y3, x1, y1, c);
     }
 
-    public void fillTriangle(int x1, int y1, int x2, int y2, int x3, int y3, byte[] c) {
-
+    public void fillTriangle(Vec2i p1, Vec2i p2, Vec2i p3, final byte[] c) {
+        fillTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c);
+    }
+    public void fillTriangle(int x1, int y1, int x2, int y2, int x3, int y3, final byte[] c) {
         int tmp;
 
         if (y1 > y2) {
@@ -343,14 +383,20 @@ public abstract class ShadowEngine {
         }
     }
 
-    public void drawRect(int x, int y, int w, int h, byte[] c) {
+    public void drawRect(Vec2i pos, Vec2i size, final byte[] c) {
+        drawRect(pos.x, pos.y, size.x, size.y, c);
+    }
+    public void drawRect(int x, int y, int w, int h, final byte[] c) {
         drawLine(x, y, x + w, y, c);
         drawLine(x + w, y, x + w, y + h, c);
         drawLine(x + w, y + h, x, y + h, c);
         drawLine(x, y + h, x, y, c);
     }
 
-    public void fillRect(int x, int y, int w, int h, byte[] c) {
+    public void fillRect(Vec2i pos, Vec2i size, final byte[] c) {
+        fillRect(pos.x, pos.y, size.x, size.y, c);
+    }
+    public void fillRect(int x, int y, int w, int h, final byte[] c) {
         int x2 = x + w;
         int y2 = y + h;
 
@@ -371,7 +417,10 @@ public abstract class ShadowEngine {
                 draw(i, j, c);
     }
 
-    public void drawCircle(int x, int y, int r, byte[] c) {
+    public void drawCircle(Vec2i pos, int r, final byte[] c) {
+        drawCircle(pos.x, pos.y, r, c);
+    }
+    public void drawCircle(int x, int y, int r, final byte[] c) {
         if (r < 0) return;
 
         int y1, x1;
@@ -389,7 +438,10 @@ public abstract class ShadowEngine {
         }
     }
 
-    public void fillCircle(int x, int y, int r, byte[] c) {
+    public void fillCircle(Vec2i pos, int r, final byte[] c) {
+        fillCircle(pos.x, pos.y, r, c);
+    }
+    public void fillCircle(int x, int y, int r, final byte[] c) {
         if (r < 0) return;
         int y1, x1;
         for (y1 = r; y1 >= -r; y1--) {
