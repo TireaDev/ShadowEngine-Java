@@ -5,6 +5,11 @@ import com.tireadev.shadowengine.math.Vec2i;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
+import java.io.IOException;
+
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 
@@ -71,6 +76,9 @@ public abstract class ShadowEngine {
             scrollX = (float) xoffset;
             scrollY = (float) yoffset;
         });
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         currentTime = System.nanoTime();
         onAwake();
@@ -479,6 +487,44 @@ public abstract class ShadowEngine {
         for (y1 = r; y1 >= -r; y1--) {
             x1 = (int)Math.sqrt(r*r - y1*y1);
             drawLine(x - x1, y + y1, x + x1, y + y1, c);
+        }
+    }
+
+    public byte[] loadImage(String path) {
+        BufferedImage image;
+        byte[] data;
+
+        try {
+            image = ImageIO.read(this.getClass().getResource(path));
+            data = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+        } catch (IOException | IllegalArgumentException e) {
+            System.err.println("Failed to load image: " + path);
+            data = new byte[0];
+        }
+
+        return data;
+    }
+
+    int ix, iy, i, ox, oy;
+    public void drawImage(Vec2i pos, int w, byte[] data, int scale) {
+        drawImage(pos.x, pos.y, w, data, scale);
+    }
+    public void drawImage(int x, int y, int w, byte[] data, int scale) {
+        if (data.length > 0) {
+            for (ix = 0, iy = 0, i = 0; i + 3 < data.length; i += 4) {
+                if (data[i] != 0)
+                    for (ox = 0; ox < scale; ox++)
+                        for (oy = 0; oy < scale; oy++)
+                            draw(x + ix + ox, y + iy + oy, new byte[] {
+                                    data[i + 3], data[i + 2], data[i + 1], data[i]
+                            });
+
+                ix += scale;
+                if (ix == w * scale) {
+                    ix = 0;
+                    iy += scale;
+                }
+            }
         }
     }
 }
