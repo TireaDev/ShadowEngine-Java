@@ -11,9 +11,7 @@ public abstract class Scene {
 
     public void onStart(ShadowEngine se) { }
 
-    public void onUpdate(ShadowEngine se, float deltaTime) {
-
-    }
-
     public void onClose(ShadowEngine se) { }
+
+    public abstract void onUpdate(ShadowEngine se, float deltaTime);
 }
