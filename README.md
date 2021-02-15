@@ -40,7 +40,7 @@ public class Example extends ShadowEngine {
     
 
     // draw circle on mouse position
-    // filled circle is drawn when right mouse button is held down
+    // filled circle is drawn when left mouse button is held down
     if (mouseDown(0))
       fillCircle(getMousePos(), 4, BLACK);
     else
