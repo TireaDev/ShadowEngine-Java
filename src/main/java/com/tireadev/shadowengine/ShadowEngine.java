@@ -515,7 +515,7 @@ public abstract class ShadowEngine {
             subImg = image.getSubimage(x, y, w, h);
             toReturn = new BufferedImage(
                     image.getColorModel(),
-                    image.getRaster().createCompatibleWritableRaster(16, 16),
+                    image.getRaster().createCompatibleWritableRaster(w, h),
                     image.isAlphaPremultiplied(),
                     null);
             subImg.copyData(toReturn.getRaster());
