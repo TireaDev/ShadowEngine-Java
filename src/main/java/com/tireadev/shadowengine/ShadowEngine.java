@@ -8,6 +8,7 @@ import org.lwjgl.opengl.GL;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
+import java.awt.image.RasterFormatException;
 import java.io.IOException;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -499,6 +500,29 @@ public abstract class ShadowEngine {
             data = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
         } catch (IOException | IllegalArgumentException e) {
             System.err.println("Failed to load image: " + path);
+            data = new byte[0];
+        }
+
+        return data;
+    }
+
+    public byte[] loadImage(String path, int x, int y, int w, int h) {
+        BufferedImage image, subImg, toReturn;
+        byte[] data;
+
+        try {
+            image = ImageIO.read(this.getClass().getResource(path));
+            subImg = image.getSubimage(x, y, w, h);
+            toReturn = new BufferedImage(
+                    image.getColorModel(),
+                    image.getRaster().createCompatibleWritableRaster(16, 16),
+                    image.isAlphaPremultiplied(),
+                    null);
+            subImg.copyData(toReturn.getRaster());
+            data = ((DataBufferByte) toReturn.getRaster().getDataBuffer()).getData();
+        } catch (IOException | IllegalArgumentException | RasterFormatException e) {
+            System.err.println("Failed to load image: " + path);
+            e.printStackTrace();
             data = new byte[0];
         }
 
