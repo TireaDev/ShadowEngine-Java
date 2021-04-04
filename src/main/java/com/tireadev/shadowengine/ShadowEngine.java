@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.RasterFormatException;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -219,7 +220,7 @@ public abstract class ShadowEngine {
     }
 
 
-    // Drawing
+    // Drawing ========================================================
     public static final byte[] BLACK          = new byte[] { (byte) 12, (byte) 12, (byte) 12, (byte) 255 };
     public static final byte[] DARK_BLUE      = new byte[] { (byte)  0, (byte) 55, (byte)218, (byte) 255 };
     public static final byte[] DARK_GREEN     = new byte[] { (byte) 19, (byte)161, (byte) 14, (byte) 255 };
@@ -250,12 +251,9 @@ public abstract class ShadowEngine {
         draw(pos.x, pos.y, c);
     }
     public void draw(int x, int y, final byte[] c) {
-        float fx = 2f*x / width - 1;
-        float fy = -(2f*y / height - 1);
-
         glBegin(GL_POINTS);
         glColor4ub(c[0], c[1], c[2], c[3]);
-        glVertex2f(fx, fy);
+        glVertex2f((2f*x / width - 1), -(2f*y / height - 1));
         glEnd();
     }
 
@@ -497,10 +495,20 @@ public abstract class ShadowEngine {
 
         try {
             image = ImageIO.read(this.getClass().getResource(path));
-            data = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+            byte[] buffer = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+            data = ByteBuffer
+                    .allocate(8 + buffer.length)
+                    .putInt(image.getWidth())
+                    .putInt(image.getHeight())
+                    .put(buffer)
+                    .array();
         } catch (IOException | IllegalArgumentException e) {
             System.err.println("Failed to load image: " + path);
-            data = new byte[0];
+            data = ByteBuffer
+                    .allocate(8)
+                    .putInt(0)
+                    .putInt(0)
+                    .array();
         }
 
         return data;
@@ -519,28 +527,45 @@ public abstract class ShadowEngine {
                     image.isAlphaPremultiplied(),
                     null);
             subImg.copyData(toReturn.getRaster());
-            data = ((DataBufferByte) toReturn.getRaster().getDataBuffer()).getData();
+            byte[] buffer = ((DataBufferByte) toReturn.getRaster().getDataBuffer()).getData();
+            data = ByteBuffer
+                    .allocate(8 + buffer.length)
+                    .putInt(toReturn.getWidth())
+                    .putInt(toReturn.getHeight())
+                    .put(buffer)
+                    .array();
         } catch (IOException | IllegalArgumentException | RasterFormatException e) {
             System.err.println("Failed to load image: " + path);
             e.printStackTrace();
-            data = new byte[0];
+            data = ByteBuffer
+                    .allocate(8)
+                    .putInt(0)
+                    .putInt(0)
+                    .array();
         }
 
         return data;
     }
 
     int ix, iy, i, ox, oy;
-    public void drawImage(Vec2i pos, int w, byte[] data, int scale) {
-        drawImage(pos.x, pos.y, w, data, scale);
+    public void drawImage(Vec2i pos, byte[] data, int scale) {
+        drawImage(pos.x, pos.y, data, scale);
     }
-    public void drawImage(int x, int y, int w, byte[] data, int scale) {
+    public void drawImage(int x, int y, byte[] data, int scale) {
         if (data.length > 0) {
-            for (ix = 0, iy = 0, i = 0; i + 3 < data.length; i += 4) {
-                if (data[i] != 0)
+
+            ByteBuffer wrapped = ByteBuffer.wrap(data);
+            int w = wrapped.getInt();
+
+            for (ix = 0, iy = 0, i = 0; i + 3 < data.length - 8; i += 4) {
+                if (wrapped.get(i + 8) != 0)
                     for (ox = 0; ox < scale; ox++)
                         for (oy = 0; oy < scale; oy++)
                             draw(x + ix + ox, y + iy + oy, new byte[] {
-                                    data[i + 3], data[i + 2], data[i + 1], data[i]
+                                    wrapped.get(i + 3 + 8),
+                                    wrapped.get(i + 2 + 8),
+                                    wrapped.get(i + 1 + 8),
+                                    wrapped.get(i + 8)
                             });
 
                 ix += scale;
