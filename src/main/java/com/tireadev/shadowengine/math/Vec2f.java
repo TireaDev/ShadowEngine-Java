@@ -17,29 +17,34 @@ public class Vec2f {
     public Vec2f(float x, float y) { this.x = x; this.y = y; }
     public Vec2f(Vec2f vec) { this.x = vec.x; this.y = vec.y; }
 
-    public void add(Vec2f vec) {
+    public Vec2f add(Vec2f vec) {
         this.x = this.x + vec.x;
         this.y = this.y + vec.y;
+        return this;
     }
 
-    public void sub(Vec2f vec) {
+    public Vec2f sub(Vec2f vec) {
         this.x = this.x - vec.x;
         this.y = this.y - vec.y;
+        return this;
     }
 
-    public void negate() {
+    public Vec2f negate() {
         this.x = this.x * -1;
         this.y = this.y * -1;
+        return this;
     }
 
-    public void scale(float n) {
+    public Vec2f scale(float n) {
         this.x = this.x * n;
         this.y = this.y * n;
+        return this;
     }
 
-    public void div(float n) {
+    public Vec2f div(float n) {
         this.x = this.x / n;
         this.y = this.y / n;
+        return this;
     }
 
     public float mag() { return mag(this); }
@@ -57,8 +62,9 @@ public class Vec2f {
         return v1.x * v2.x + v1.y * v2.y;
     }
 
-    public void norm() {
+    public Vec2f norm() {
         this.div(this.mag());
+        return this;
     }
 
 
