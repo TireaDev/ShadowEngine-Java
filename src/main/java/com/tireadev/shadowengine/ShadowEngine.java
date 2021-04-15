@@ -9,7 +9,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.RasterFormatException;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -261,64 +261,11 @@ public abstract class ShadowEngine {
         drawLine(p1.x, p1.y, p2.x, p2.y, c);
     }
     public void drawLine(int x1, int y1, int x2, int y2, final byte[] c) {
-        int x, y, dx, dy, dx1, dy1, px, py, xe, ye, i;
-        dx = x2 - x1;
-        dy = y2 - y1;
-
-        if (dx == 0) {
-            if (y2 < y1) { int tmp = y2; y2 = y1; y1 = tmp; }
-            for (y = y1; y <= y2; y++) draw(x1, y, c);
-            return;
-        }
-
-        if (dy == 0) {
-            if (x2 < x1) { int tmp = x2; x2 = x1; x1 = tmp; }
-            for (x = x1; x <= x2; x++) draw(x, y1, c);
-            return;
-        }
-
-        dx1 = Math.abs(dx);
-        dy1 = Math.abs(dy);
-        px = 2 * dy1 - dx1;
-        py = 2 * dx1 - dy1;
-        if (dy1 <= dx1) {
-            if (dx >= 0) {
-                x = x1; y = y1; xe = x2;
-            } else {
-                x = x2; y = y2; xe = x1;
-            }
-
-            draw(x, y, c);
-
-            for (i = 0; x < xe; i++) {
-                x = x + 1;
-                if (px < 0) px = px + 2 * dy1;
-                else {
-                    if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) y = y + 1; else y = y - 1;
-                    px = px + 2* (dy1 - dx1);
-                }
-                draw(x, y, c);
-            }
-        }
-        else {
-            if (dy >= 0) {
-                x = x1; y = y1; ye = y2;
-            } else {
-                x = x2; y = y2; ye = y1;
-            }
-
-            draw(x, y, c);
-
-            for (i = 0; y < ye; i++) {
-                y = y + 1;
-                if (py <= 0) py = py + 2 * dx1;
-                else {
-                    if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) x = x + 1; else x = x - 1;
-                    py = py + 2 * (dx1 - dy1);
-                }
-                draw(x, y, c);
-            }
-        }
+        glBegin(GL_LINE);
+        glColor4ub(c[0], c[1], c[2], c[3]);
+        glVertex2f((2f*x1 / width - 1), -(2f*y1 / height - 1));
+        glVertex2f((2f*x2 / width - 1), -(2f*y2 / height - 1));
+        glEnd();
     }
 
     public void drawTriangle(Vec2i p1, Vec2i p2, Vec2i p3, final byte[] c) {
@@ -334,92 +281,12 @@ public abstract class ShadowEngine {
         fillTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c);
     }
     public void fillTriangle(int x1, int y1, int x2, int y2, int x3, int y3, final byte[] c) {
-        int tmp;
-
-        if (y1 > y2) {
-            tmp = y1;
-            y1  = y2;
-            y2  = tmp;
-
-            tmp = x1;
-            x1  = x2;
-            x2  = tmp;
-        }
-
-        if (y2 > y3) {
-            tmp = y2;
-            y2 = y3;
-            y3 = tmp;
-
-            tmp = x2;
-            x2 = x3;
-            x3 = tmp;
-        }
-
-        if (y1 > y2) {
-            tmp = y1;
-            y1  = y2;
-            y2  = tmp;
-
-            tmp = x1;
-            x1  = x2;
-            x2  = tmp;
-        }
-
-        if (y2 == y3) {
-            float is1 = (x2 - x1) / (float)(y2 - y1);
-            float is2 = (x3 - x1) / (float)(y3 - y1);
-
-            float cx1 = x1;
-            float cx2 = x1;
-
-            for (int sy = y1; sy <= y2; sy++) {
-                drawLine((int)cx1, sy, (int)cx2, sy, c);
-                cx1 += is1;
-                cx2 += is2;
-            }
-        } else if (y1 == y2) {
-            float is1 = (x3 - x1) / (float)(y3 - y1);
-            float is2 = (x3 - x2) / (float)(y3 - y2);
-
-            float cx1 = x3;
-            float cx2 = x3;
-
-            for (int sy = y3; sy > y1; sy--) {
-                drawLine((int)cx1, sy, (int)cx2, sy, c);
-                cx1 -= is1;
-                cx2 -= is2;
-            }
-        } else {
-            int x4, y4;
-
-            x4 = (int)(x1 + ((float)(y2 - y1) / (float)(y3 - y1)) * (x3 - x1));
-            y4 = y2;
-
-            float is1 = (x2 - x1) / (float)(y2 - y1);
-            float is2 = (x4 - x1) / (float)(y4 - y1);
-
-            float cx1 = x1;
-            float cx2 = x1;
-
-            for (int sy = y1; sy <= y2; sy++) {
-                drawLine((int)cx1, sy, (int)cx2, sy, c);
-                cx1 += is1;
-                cx2 += is2;
-            }
-
-            is1 = (x3 - x2) / (float)(y3 - y2);
-            is2 = (x3 - x4) / (float)(y3 - y4);
-
-            cx1 = x3;
-            cx2 = x3;
-
-            for (int sy = y3; sy > y2; sy--) {
-                drawLine((int)cx1, sy, (int)cx2, sy, c);
-                cx1 -= is1;
-                cx2 -= is2;
-            }
-        }
+        glBegin(GL_TRIANGLES);
+        glColor4ub(c[0], c[1], c[2], c[3]);
+        glVertex2f((2f*x1 / width - 1), -(2f*y1 / height - 1));
+        glVertex2f((2f*x2 / width - 1), -(2f*y2 / height - 1));
+        glVertex2f((2f*x3 / width - 1), -(2f*y3 / height - 1));
+        glEnd();
     }
 
     public void drawRect(Vec2i pos, Vec2i size, final byte[] c) {
@@ -436,24 +303,13 @@ public abstract class ShadowEngine {
         fillRect(pos.x, pos.y, size.x, size.y, c);
     }
     public void fillRect(int x, int y, int w, int h, final byte[] c) {
-        int x2 = x + w;
-        int y2 = y + h;
-
-        if (x2 < x) {
-            int tmp = x2;
-            x2 = x;
-            x = tmp;
-        }
-
-        if (y2 < y) {
-            int tmp = y2;
-            y2 = y;
-            y = tmp;
-        }
-
-        for (int i = x; i <= x2; i++)
-            for (int j = y; j <= y2; j++)
-                draw(i, j, c);
+        glBegin(GL_POLYGON);
+        glColor4ub(c[0], c[1], c[2], c[3]);
+        glVertex2f((2f*x / width - 1), -(2f*y / height - 1));
+        glVertex2f((2f*(x+w) / width - 1), -(2f*y / height - 1));
+        glVertex2f((2f*(x+w) / width - 1), -(2f*(y+h) / height - 1));
+        glVertex2f((2f*x / width - 1), -(2f*(y+h) / height - 1));
+        glEnd();
     }
 
     public void drawCircle(Vec2i pos, int r, final byte[] c) {
@@ -547,33 +403,46 @@ public abstract class ShadowEngine {
         return data;
     }
 
-    int ix, iy, i, ox, oy;
     public void drawImage(Vec2i pos, byte[] data, int scale) {
         drawImage(pos.x, pos.y, data, scale);
     }
     public void drawImage(int x, int y, byte[] data, int scale) {
-        if (data.length > 0) {
+        if (data.length <= 8) return;
 
-            ByteBuffer wrapped = ByteBuffer.wrap(data);
-            int w = wrapped.getInt();
+        int ix, iy, i, ox, oy;
 
-            for (ix = 0, iy = 0, i = 0; i + 3 < data.length - 8; i += 4) {
-                if (wrapped.get(i + 8) != 0)
-                    for (ox = 0; ox < scale; ox++)
-                        for (oy = 0; oy < scale; oy++)
-                            draw(x + ix + ox, y + iy + oy, new byte[] {
-                                    wrapped.get(i + 3 + 8),
-                                    wrapped.get(i + 2 + 8),
-                                    wrapped.get(i + 1 + 8),
-                                    wrapped.get(i + 8)
-                            });
+        ByteBuffer wrapped = ByteBuffer.wrap(data);
+        int w = wrapped.getInt();
 
-                ix += scale;
-                if (ix == w * scale) {
-                    ix = 0;
-                    iy += scale;
-                }
+        for (ix = 0, iy = 0, i = 0; i + 3 + 8 < data.length; i += 4) {
+            if (wrapped.get(i + 8) != 0)
+                for (ox = 0; ox < scale; ox++)
+                    for (oy = 0; oy < scale; oy++)
+                        draw(x + ix + ox, y + iy + oy, new byte[] {
+                                wrapped.get(i + 3 + 8),
+                                wrapped.get(i + 2 + 8),
+                                wrapped.get(i + 1 + 8),
+                                wrapped.get(i + 8)
+                        });
+
+            ix += scale;
+            if (ix == w * scale) {
+                ix = 0;
+                iy += scale;
             }
         }
+    }
+
+    public int getImageWidth(byte[] data) {
+        if (data.length < 4) return 0;
+        ByteBuffer wrapped = ByteBuffer.wrap(data);
+        return wrapped.getInt();
+    }
+
+    public int getImageHeight(byte[] data) {
+        if (data.length < 8) return 0;
+        ByteBuffer wrapped = ByteBuffer.wrap(data);
+        wrapped.getInt();
+        return wrapped.getInt();
     }
 }
