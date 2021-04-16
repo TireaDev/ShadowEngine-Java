@@ -6,6 +6,7 @@ import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 
 import javax.imageio.ImageIO;
+import javax.sound.sampled.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.RasterFormatException;
@@ -444,5 +445,48 @@ public abstract class ShadowEngine {
         ByteBuffer wrapped = ByteBuffer.wrap(data);
         wrapped.getInt();
         return wrapped.getInt();
+    }
+
+
+
+    // Sound ==========================================================
+    public AudioInputStream loadSound(String path) {
+        AudioInputStream ais = null;
+        try {
+            ais = AudioSystem.getAudioInputStream(new File(path));
+            byte[] buffer = new byte[1024*32];
+            int read = 0;
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(buffer.length);
+
+            while ((read = ais.read(buffer, 0, buffer.length)) != -1) {
+                baos.write(buffer, 0, read);
+            }
+
+            AudioInputStream reusableAis = new AudioInputStream(
+                    new ByteArrayInputStream(baos.toByteArray()),
+                    ais.getFormat(),
+                    AudioSystem.NOT_SPECIFIED
+            );
+
+            ais.close();
+
+            return reusableAis;
+        } catch (IOException | UnsupportedAudioFileException e) {
+            System.err.println("Failed to load sound file: " + path);
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public void playSound(AudioInputStream ais) {
+        try {
+            ais.reset();
+            Clip clip = AudioSystem.getClip();
+            clip.open(ais);
+            clip.start();
+        } catch (IOException | LineUnavailableException | IndexOutOfBoundsException e) {
+            System.err.println("Failed to play sound");
+            e.printStackTrace();
+        }
     }
 }
