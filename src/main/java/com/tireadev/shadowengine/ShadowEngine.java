@@ -359,7 +359,7 @@ public abstract class ShadowEngine {
                     .putInt(image.getHeight())
                     .put(buffer)
                     .array();
-        } catch (IOException | IllegalArgumentException e) {
+        } catch (IOException | IllegalArgumentException | NullPointerException e) {
             System.err.println("Failed to load image: " + path);
             data = ByteBuffer
                     .allocate(8)
@@ -391,7 +391,7 @@ public abstract class ShadowEngine {
                     .putInt(toReturn.getHeight())
                     .put(buffer)
                     .array();
-        } catch (IOException | IllegalArgumentException | RasterFormatException e) {
+        } catch (IOException | IllegalArgumentException | RasterFormatException | NullPointerException e) {
             System.err.println("Failed to load image: " + path);
             e.printStackTrace();
             data = ByteBuffer
