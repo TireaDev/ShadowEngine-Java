@@ -351,7 +351,7 @@ public abstract class ShadowEngine {
         byte[] data;
 
         try {
-            image = ImageIO.read(this.getClass().getResource(path));
+            image = ImageIO.read(new File(path));
             byte[] buffer = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
             data = ByteBuffer
                     .allocate(8 + buffer.length)
@@ -376,7 +376,7 @@ public abstract class ShadowEngine {
         byte[] data;
 
         try {
-            image = ImageIO.read(this.getClass().getResource(path));
+            image = ImageIO.read(new File(path));
             subImg = image.getSubimage(x, y, w, h);
             toReturn = new BufferedImage(
                     image.getColorModel(),
