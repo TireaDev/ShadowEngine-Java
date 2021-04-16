@@ -262,7 +262,7 @@ public abstract class ShadowEngine {
         drawLine(p1.x, p1.y, p2.x, p2.y, c);
     }
     public void drawLine(int x1, int y1, int x2, int y2, final byte[] c) {
-        glBegin(GL_LINE);
+        glBegin(GL_LINES);
         glColor4ub(c[0], c[1], c[2], c[3]);
         glVertex2f((2f*x1 / width - 1), -(2f*y1 / height - 1));
         glVertex2f((2f*x2 / width - 1), -(2f*y2 / height - 1));
