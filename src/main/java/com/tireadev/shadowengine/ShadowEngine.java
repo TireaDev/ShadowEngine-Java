@@ -339,6 +339,7 @@ public abstract class ShadowEngine {
     }
     public void fillCircle(int x, int y, int r, final byte[] c) {
         if (r < 0) return;
+        drawCircle(x, y, r, c);
         int y1, x1;
         for (y1 = r; y1 >= -r; y1--) {
             x1 = (int)Math.sqrt(r*r - y1*y1);
