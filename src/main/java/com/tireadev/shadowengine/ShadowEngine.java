@@ -12,6 +12,7 @@ import java.awt.image.DataBufferByte;
 import java.awt.image.RasterFormatException;
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -347,60 +348,43 @@ public abstract class ShadowEngine {
         }
     }
 
-    public byte[] loadImage(String path) {
+    public byte[] loadImage(String path)
+            throws IOException, IllegalArgumentException, RasterFormatException {
         BufferedImage image;
         byte[] data;
 
-        try {
-            image = ImageIO.read(new File(path));
-            byte[] buffer = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
-            data = ByteBuffer
-                    .allocate(8 + buffer.length)
-                    .putInt(image.getWidth())
-                    .putInt(image.getHeight())
-                    .put(buffer)
-                    .array();
-        } catch (IOException | IllegalArgumentException | NullPointerException e) {
-            System.err.println("Failed to load image: " + path);
-            data = ByteBuffer
-                    .allocate(8)
-                    .putInt(0)
-                    .putInt(0)
-                    .array();
-        }
+        image = ImageIO.read(new File(path));
+        byte[] buffer = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+        data = ByteBuffer
+                .allocate(8 + buffer.length)
+                .putInt(image.getWidth())
+                .putInt(image.getHeight())
+                .put(buffer)
+                .array();
 
         return data;
     }
 
-    public byte[] loadImage(String path, int x, int y, int w, int h) {
+    public byte[] loadImage(String path, int x, int y, int w, int h)
+            throws IOException, IllegalArgumentException, RasterFormatException {
         BufferedImage image, subImg, toReturn;
         byte[] data;
 
-        try {
-            image = ImageIO.read(new File(path));
-            subImg = image.getSubimage(x, y, w, h);
-            toReturn = new BufferedImage(
-                    image.getColorModel(),
-                    image.getRaster().createCompatibleWritableRaster(w, h),
-                    image.isAlphaPremultiplied(),
-                    null);
-            subImg.copyData(toReturn.getRaster());
-            byte[] buffer = ((DataBufferByte) toReturn.getRaster().getDataBuffer()).getData();
-            data = ByteBuffer
-                    .allocate(8 + buffer.length)
-                    .putInt(toReturn.getWidth())
-                    .putInt(toReturn.getHeight())
-                    .put(buffer)
-                    .array();
-        } catch (IOException | IllegalArgumentException | RasterFormatException | NullPointerException e) {
-            System.err.println("Failed to load image: " + path);
-            e.printStackTrace();
-            data = ByteBuffer
-                    .allocate(8)
-                    .putInt(0)
-                    .putInt(0)
-                    .array();
-        }
+        image = ImageIO.read(new File(path));
+        subImg = image.getSubimage(x, y, w, h);
+        toReturn = new BufferedImage(
+                image.getColorModel(),
+                image.getRaster().createCompatibleWritableRaster(w, h),
+                image.isAlphaPremultiplied(),
+                null);
+        subImg.copyData(toReturn.getRaster());
+        byte[] buffer = ((DataBufferByte) toReturn.getRaster().getDataBuffer()).getData();
+        data = ByteBuffer
+                .allocate(8 + buffer.length)
+                .putInt(toReturn.getWidth())
+                .putInt(toReturn.getHeight())
+                .put(buffer)
+                .array();
 
         return data;
     }
@@ -451,43 +435,59 @@ public abstract class ShadowEngine {
 
 
     // Sound ==========================================================
-    public AudioInputStream loadSound(String path) {
-        AudioInputStream ais = null;
-        try {
-            ais = AudioSystem.getAudioInputStream(new File(path));
-            byte[] buffer = new byte[1024*32];
-            int read = 0;
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(buffer.length);
+    public byte[] loadSound(String path)
+            throws IOException, UnsupportedAudioFileException {
+        AudioInputStream ais;
+        ByteBuffer toReturn;
 
-            while ((read = ais.read(buffer, 0, buffer.length)) != -1) {
-                baos.write(buffer, 0, read);
-            }
+        ais = AudioSystem.getAudioInputStream(new File(path));
+        byte[] buffer = new byte[1024*32];
+        int read = 0;
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(buffer.length);
 
-            AudioInputStream reusableAis = new AudioInputStream(
-                    new ByteArrayInputStream(baos.toByteArray()),
-                    ais.getFormat(),
-                    AudioSystem.NOT_SPECIFIED
-            );
-
-            ais.close();
-
-            return reusableAis;
-        } catch (IOException | UnsupportedAudioFileException e) {
-            System.err.println("Failed to load sound file: " + path);
-            e.printStackTrace();
-            return null;
+        while ((read = ais.read(buffer, 0, buffer.length)) != -1) {
+            baos.write(buffer, 0, read);
         }
+
+        AudioInputStream reusableAis = new AudioInputStream(
+                new ByteArrayInputStream(baos.toByteArray()),
+                ais.getFormat(),
+                AudioSystem.NOT_SPECIFIED
+        );
+
+        // float sampleRate, int sampleSizeInBits, int channels, boolean signed, boolean bigEndian
+        ByteBuffer format = ByteBuffer.allocate(4 + 4 + 4 + 1 + 1);
+        AudioFormat aisFormat = ais.getFormat();
+        format.putFloat(aisFormat.getSampleRate())
+                .putInt(aisFormat.getSampleSizeInBits())
+                .putInt(aisFormat.getChannels())
+                .put(aisFormat.getEncoding().equals(AudioFormat.Encoding.PCM_SIGNED) ? (byte) 1 : (byte) 0)
+                .put(aisFormat.isBigEndian() ? (byte) 1 : (byte) 0);
+
+        toReturn = ByteBuffer.allocate(format.array().length + baos.size());
+        toReturn.put(format.array());
+        toReturn.put(baos.toByteArray());
+
+        ais.close();
+
+        return toReturn.array();
     }
 
-    public void playSound(AudioInputStream ais) {
-        try {
-            ais.reset();
-            Clip clip = AudioSystem.getClip();
-            clip.open(ais);
-            clip.start();
-        } catch (IOException | LineUnavailableException | IndexOutOfBoundsException e) {
-            System.err.println("Failed to play sound");
-            e.printStackTrace();
-        }
+    public void playSound(byte[] data)
+            throws IOException, LineUnavailableException {
+        ByteBuffer wrapped = ByteBuffer.wrap(data);
+        AudioFormat af = new AudioFormat(
+                wrapped.getFloat(),
+                wrapped.getInt(),
+                wrapped.getInt(),
+                wrapped.get() == (byte) 1,
+                wrapped.get() == (byte) 1
+        );
+        ByteArrayInputStream bais = new ByteArrayInputStream(Arrays.copyOfRange(wrapped.array(), 4+4+4+1+1, wrapped.array().length));
+        AudioInputStream ais = new AudioInputStream(bais, af, AudioSystem.NOT_SPECIFIED);
+        ais.reset();
+        Clip clip = AudioSystem.getClip();
+        clip.open(ais);
+        clip.start();
     }
 }
