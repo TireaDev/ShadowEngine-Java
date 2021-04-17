@@ -135,10 +135,10 @@ public abstract class ShadowEngine {
 
 
     // Util ===========================================================
-    static final double pi180 = Math.PI / 180;
+    static final double d2r = Math.PI / 180.;
 
     public static double degToRad(float deg) {
-        return deg * pi180;
+        return deg * d2r;
     }
 
     public static float[] byteColorToFloat(final byte[] b) {
@@ -253,6 +253,7 @@ public abstract class ShadowEngine {
         draw(pos.x, pos.y, c);
     }
     public void draw(int x, int y, final byte[] c) {
+        if (x < 0 || x > width || y < 0 || y > height) return;
         glBegin(GL_POINTS);
         glColor4ub(c[0], c[1], c[2], c[3]);
         glVertex2f((2f*x / width - 1), -(2f*y / height - 1));
@@ -348,45 +349,55 @@ public abstract class ShadowEngine {
         }
     }
 
-    public byte[] loadImage(String path)
-            throws IOException, IllegalArgumentException, RasterFormatException {
-        BufferedImage image;
-        byte[] data;
 
-        image = ImageIO.read(new File(path));
-        byte[] buffer = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
-        data = ByteBuffer
-                .allocate(8 + buffer.length)
-                .putInt(image.getWidth())
-                .putInt(image.getHeight())
-                .put(buffer)
-                .array();
+    // Image ==========================================================
+    public byte[] loadImage(String path) {
+        try {
+            BufferedImage image;
+            byte[] data;
 
-        return data;
+            image = ImageIO.read(new File(path));
+            byte[] buffer = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+            data = ByteBuffer
+                    .allocate(8 + buffer.length)
+                    .putInt(image.getWidth())
+                    .putInt(image.getHeight())
+                    .put(buffer)
+                    .array();
+
+            return data;
+        } catch (IOException | IllegalArgumentException | RasterFormatException e) {
+            System.err.println("Failed to load image:\n\tpath: " + path + "\n\t" + e.getLocalizedMessage());
+            return null;
+        }
     }
 
-    public byte[] loadImage(String path, int x, int y, int w, int h)
-            throws IOException, IllegalArgumentException, RasterFormatException {
-        BufferedImage image, subImg, toReturn;
-        byte[] data;
+    public byte[] loadImage(String path, int x, int y, int w, int h) {
+        try {
+            BufferedImage image, subImg, toReturn;
+            byte[] data;
 
-        image = ImageIO.read(new File(path));
-        subImg = image.getSubimage(x, y, w, h);
-        toReturn = new BufferedImage(
-                image.getColorModel(),
-                image.getRaster().createCompatibleWritableRaster(w, h),
-                image.isAlphaPremultiplied(),
-                null);
-        subImg.copyData(toReturn.getRaster());
-        byte[] buffer = ((DataBufferByte) toReturn.getRaster().getDataBuffer()).getData();
-        data = ByteBuffer
-                .allocate(8 + buffer.length)
-                .putInt(toReturn.getWidth())
-                .putInt(toReturn.getHeight())
-                .put(buffer)
-                .array();
+            image = ImageIO.read(new File(path));
+            subImg = image.getSubimage(x, y, w, h);
+            toReturn = new BufferedImage(
+                    image.getColorModel(),
+                    image.getRaster().createCompatibleWritableRaster(w, h),
+                    image.isAlphaPremultiplied(),
+                    null);
+            subImg.copyData(toReturn.getRaster());
+            byte[] buffer = ((DataBufferByte) toReturn.getRaster().getDataBuffer()).getData();
+            data = ByteBuffer
+                    .allocate(8 + buffer.length)
+                    .putInt(toReturn.getWidth())
+                    .putInt(toReturn.getHeight())
+                    .put(buffer)
+                    .array();
 
-        return data;
+            return data;
+        } catch (IOException | IllegalArgumentException | RasterFormatException e) {
+            System.err.println("Failed to load image:\n\tpath: " + path + "\n\t" + e.getLocalizedMessage());
+            return null;
+        }
     }
 
     public void drawImage(Vec2i pos, byte[] data, int scale) {
@@ -401,15 +412,21 @@ public abstract class ShadowEngine {
         int w = wrapped.getInt();
 
         for (ix = 0, iy = 0, i = 0; i + 3 + 8 < data.length; i += 4) {
-            if (wrapped.get(i + 8) != 0)
-                for (ox = 0; ox < scale; ox++)
-                    for (oy = 0; oy < scale; oy++)
-                        draw(x + ix + ox, y + iy + oy, new byte[] {
+            if (wrapped.get(i + 8) != 0) {
+                for (ox = 0; ox < scale; ox++) {
+                    for (oy = 0; oy < scale; oy++) {
+                        if (x + ix + ox < 0 || x + ix + ox > width || y + iy + oy < 0 || y + iy + oy > height)
+                            continue;
+
+                        draw(x + ix + ox, y + iy + oy, new byte[]{
                                 wrapped.get(i + 3 + 8),
                                 wrapped.get(i + 2 + 8),
                                 wrapped.get(i + 1 + 8),
                                 wrapped.get(i + 8)
                         });
+                    }
+                }
+            }
 
             ix += scale;
             if (ix == w * scale) {
@@ -433,61 +450,67 @@ public abstract class ShadowEngine {
     }
 
 
-
     // Sound ==========================================================
-    public byte[] loadSound(String path)
-            throws IOException, UnsupportedAudioFileException {
-        AudioInputStream ais;
-        ByteBuffer toReturn;
+    public byte[] loadSound(String path) {
+        try {
+            AudioInputStream ais;
+            ByteBuffer toReturn;
 
-        ais = AudioSystem.getAudioInputStream(new File(path));
-        byte[] buffer = new byte[1024*32];
-        int read = 0;
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(buffer.length);
+            ais = AudioSystem.getAudioInputStream(new File(path));
+            byte[] buffer = new byte[1024 * 32];
+            int read = 0;
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(buffer.length);
 
-        while ((read = ais.read(buffer, 0, buffer.length)) != -1) {
-            baos.write(buffer, 0, read);
+            while ((read = ais.read(buffer, 0, buffer.length)) != -1) {
+                baos.write(buffer, 0, read);
+            }
+
+            AudioInputStream reusableAis = new AudioInputStream(
+                    new ByteArrayInputStream(baos.toByteArray()),
+                    ais.getFormat(),
+                    AudioSystem.NOT_SPECIFIED
+            );
+
+            // float sampleRate, int sampleSizeInBits, int channels, boolean signed, boolean bigEndian
+            ByteBuffer format = ByteBuffer.allocate(4 + 4 + 4 + 1 + 1);
+            AudioFormat aisFormat = ais.getFormat();
+            format.putFloat(aisFormat.getSampleRate())
+                    .putInt(aisFormat.getSampleSizeInBits())
+                    .putInt(aisFormat.getChannels())
+                    .put(aisFormat.getEncoding().equals(AudioFormat.Encoding.PCM_SIGNED) ? (byte) 1 : (byte) 0)
+                    .put(aisFormat.isBigEndian() ? (byte) 1 : (byte) 0);
+
+            toReturn = ByteBuffer.allocate(format.array().length + baos.size());
+            toReturn.put(format.array());
+            toReturn.put(baos.toByteArray());
+
+            ais.close();
+
+            return toReturn.array();
+        } catch (IOException | UnsupportedAudioFileException e) {
+            System.err.println("Failed to load sound:\n\tpath: " + path + "\n\t" + e.getLocalizedMessage());
+            return null;
         }
-
-        AudioInputStream reusableAis = new AudioInputStream(
-                new ByteArrayInputStream(baos.toByteArray()),
-                ais.getFormat(),
-                AudioSystem.NOT_SPECIFIED
-        );
-
-        // float sampleRate, int sampleSizeInBits, int channels, boolean signed, boolean bigEndian
-        ByteBuffer format = ByteBuffer.allocate(4 + 4 + 4 + 1 + 1);
-        AudioFormat aisFormat = ais.getFormat();
-        format.putFloat(aisFormat.getSampleRate())
-                .putInt(aisFormat.getSampleSizeInBits())
-                .putInt(aisFormat.getChannels())
-                .put(aisFormat.getEncoding().equals(AudioFormat.Encoding.PCM_SIGNED) ? (byte) 1 : (byte) 0)
-                .put(aisFormat.isBigEndian() ? (byte) 1 : (byte) 0);
-
-        toReturn = ByteBuffer.allocate(format.array().length + baos.size());
-        toReturn.put(format.array());
-        toReturn.put(baos.toByteArray());
-
-        ais.close();
-
-        return toReturn.array();
     }
 
-    public void playSound(byte[] data)
-            throws IOException, LineUnavailableException {
-        ByteBuffer wrapped = ByteBuffer.wrap(data);
-        AudioFormat af = new AudioFormat(
-                wrapped.getFloat(),
-                wrapped.getInt(),
-                wrapped.getInt(),
-                wrapped.get() == (byte) 1,
-                wrapped.get() == (byte) 1
-        );
-        ByteArrayInputStream bais = new ByteArrayInputStream(Arrays.copyOfRange(wrapped.array(), 4+4+4+1+1, wrapped.array().length));
-        AudioInputStream ais = new AudioInputStream(bais, af, AudioSystem.NOT_SPECIFIED);
-        ais.reset();
-        Clip clip = AudioSystem.getClip();
-        clip.open(ais);
-        clip.start();
+    public void playSound(byte[] data) {
+        try {
+            ByteBuffer wrapped = ByteBuffer.wrap(data);
+            AudioFormat af = new AudioFormat(
+                    wrapped.getFloat(),
+                    wrapped.getInt(),
+                    wrapped.getInt(),
+                    wrapped.get() == (byte) 1,
+                    wrapped.get() == (byte) 1
+            );
+            ByteArrayInputStream bais = new ByteArrayInputStream(Arrays.copyOfRange(wrapped.array(), 4 + 4 + 4 + 1 + 1, wrapped.array().length));
+            AudioInputStream ais = new AudioInputStream(bais, af, AudioSystem.NOT_SPECIFIED);
+            ais.reset();
+            Clip clip = AudioSystem.getClip();
+            clip.open(ais);
+            clip.start();
+        } catch (IOException | LineUnavailableException | IndexOutOfBoundsException e) {
+            System.err.println("Failed to play sound:\n\t" + e.getLocalizedMessage());
+        }
     }
 }
