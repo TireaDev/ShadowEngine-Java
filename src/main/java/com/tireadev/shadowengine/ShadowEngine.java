@@ -279,8 +279,9 @@ public abstract class ShadowEngine {
     }
     public void draw(int x, int y, final byte[] c) {
         if (x < 0 || x > width || y < 0 || y > height) return;
+        float[] cf = byteColorToFloat(c);
         glBegin(GL_POINTS);
-        glColor4ub(c[0], c[1], c[2], c[3]);
+        glColor4f(cf[0], cf[1], cf[2], cf[3]);
         glVertex2f((2f*x / width - 1), -(2f*y / height - 1));
         glEnd();
     }
@@ -289,8 +290,9 @@ public abstract class ShadowEngine {
         drawLine(p1.x, p1.y, p2.x, p2.y, c);
     }
     public void drawLine(int x1, int y1, int x2, int y2, final byte[] c) {
+        float[] cf = byteColorToFloat(c);
         glBegin(GL_LINES);
-        glColor4ub(c[0], c[1], c[2], c[3]);
+        glColor4f(cf[0], cf[1], cf[2], cf[3]);
         glVertex2f((2f*x1 / width - 1), -(2f*y1 / height - 1));
         glVertex2f((2f*x2 / width - 1), -(2f*y2 / height - 1));
         glEnd();
@@ -309,8 +311,9 @@ public abstract class ShadowEngine {
         fillTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c);
     }
     public void fillTriangle(int x1, int y1, int x2, int y2, int x3, int y3, final byte[] c) {
+        float[] cf = byteColorToFloat(c);
         glBegin(GL_TRIANGLES);
-        glColor4ub(c[0], c[1], c[2], c[3]);
+        glColor4f(cf[0], cf[1], cf[2], cf[3]);
         glVertex2f((2f*x1 / width - 1), -(2f*y1 / height - 1));
         glVertex2f((2f*x2 / width - 1), -(2f*y2 / height - 1));
         glVertex2f((2f*x3 / width - 1), -(2f*y3 / height - 1));
@@ -331,8 +334,9 @@ public abstract class ShadowEngine {
         fillRect(pos.x, pos.y, size.x, size.y, c);
     }
     public void fillRect(int x, int y, int w, int h, final byte[] c) {
+        float[] cf = byteColorToFloat(c);
         glBegin(GL_POLYGON);
-        glColor4ub(c[0], c[1], c[2], c[3]);
+        glColor4f(cf[0], cf[1], cf[2], cf[3]);
         glVertex2f((2f*x / width - 1), -(2f*y / height - 1));
         glVertex2f((2f*(x+w) / width - 1), -(2f*y / height - 1));
         glVertex2f((2f*(x+w) / width - 1), -(2f*(y+h) / height - 1));
@@ -399,22 +403,22 @@ public abstract class ShadowEngine {
 
     public byte[] loadImage(String path, int x, int y, int w, int h) {
         try {
-            BufferedImage image, subImg, toReturn;
+            BufferedImage image, subImg, finalImg;
             byte[] data;
 
             image = ImageIO.read(new File(path));
             subImg = image.getSubimage(x, y, w, h);
-            toReturn = new BufferedImage(
+            finalImg = new BufferedImage(
                     image.getColorModel(),
                     image.getRaster().createCompatibleWritableRaster(w, h),
                     image.isAlphaPremultiplied(),
                     null);
-            subImg.copyData(toReturn.getRaster());
-            byte[] buffer = ((DataBufferByte) toReturn.getRaster().getDataBuffer()).getData();
+            subImg.copyData(finalImg.getRaster());
+            byte[] buffer = ((DataBufferByte) finalImg.getRaster().getDataBuffer()).getData();
             data = ByteBuffer
                     .allocate(8 + buffer.length)
-                    .putInt(toReturn.getWidth())
-                    .putInt(toReturn.getHeight())
+                    .putInt(finalImg.getWidth())
+                    .putInt(finalImg.getHeight())
                     .put(buffer)
                     .array();
 
@@ -505,9 +509,10 @@ public abstract class ShadowEngine {
                     .put(aisFormat.getEncoding().equals(AudioFormat.Encoding.PCM_SIGNED) ? (byte) 1 : (byte) 0)
                     .put(aisFormat.isBigEndian() ? (byte) 1 : (byte) 0);
 
-            toReturn = ByteBuffer.allocate(format.array().length + baos.size());
-            toReturn.put(format.array());
-            toReturn.put(baos.toByteArray());
+            toReturn = ByteBuffer
+                    .allocate(format.array().length + baos.size())
+                    .put(format.array())
+                    .put(baos.toByteArray());
 
             ais.close();
 
@@ -519,8 +524,8 @@ public abstract class ShadowEngine {
     }
 
     public void playSound(byte[] data) {
+        ByteBuffer wrapped = ByteBuffer.wrap(data);
         try {
-            ByteBuffer wrapped = ByteBuffer.wrap(data);
             AudioFormat af = new AudioFormat(
                     wrapped.getFloat(),
                     wrapped.getInt(),
