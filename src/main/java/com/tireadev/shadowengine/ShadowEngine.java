@@ -13,6 +13,7 @@ import java.awt.image.RasterFormatException;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Locale;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -20,6 +21,9 @@ import static org.lwjgl.opengl.GL11.*;
 public abstract class ShadowEngine {
 
     public static ShadowEngine instance;
+
+    private static EPlatform platform;
+    public static final String version = "preview-1.2.2";
 
     // Abstract =======================================================
     public abstract void onAwake();
@@ -39,6 +43,19 @@ public abstract class ShadowEngine {
 
     public boolean construct(int width, int height, String title, boolean vsync, boolean hideCursor) {
         GLFWErrorCallback.createPrint(System.err).set();
+
+        String platformString = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
+
+        if (platformString.contains("mac") || platformString.contains("darwin"))
+            platform = EPlatform.MACOS;
+        else if (platformString.contains("win"))
+            platform = EPlatform.WINDOWS;
+        else if (platformString.contains("nux"))
+            platform = EPlatform.LINUX;
+        else
+            platform = EPlatform.OTHER;
+
+
 
         if (!glfwInit()) return false;
 
@@ -86,6 +103,10 @@ public abstract class ShadowEngine {
 
         currentTime = System.nanoTime();
         onAwake();
+
+        System.out.println("Running on ShadowEngine");
+        System.out.println("version:\t" + version);
+        System.out.println("platform:\t" + platform);
 
         return true;
     }
@@ -146,6 +167,10 @@ public abstract class ShadowEngine {
         float[] toReturn = new float[l];
         for (i = 0; i < l; i++) toReturn[i] = Byte.toUnsignedInt(b[i]) / 255f;
         return toReturn;
+    }
+
+    public static EPlatform getPlatform() {
+        return platform;
     }
 
 
