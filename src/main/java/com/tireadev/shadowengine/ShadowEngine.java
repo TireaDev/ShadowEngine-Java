@@ -435,26 +435,22 @@ public abstract class ShadowEngine {
     public void drawImage(int x, int y, byte[] data, int scale) {
         if (data.length <= 8) return;
 
-        int ix, iy, i, ox, oy;
+        int ix, iy, i;
 
         ByteBuffer wrapped = ByteBuffer.wrap(data);
         int w = wrapped.getInt();
 
         for (ix = 0, iy = 0, i = 0; i + 3 + 8 < data.length; i += 4) {
             if (wrapped.get(i + 8) != 0) {
-                for (ox = 0; ox < scale; ox++) {
-                    for (oy = 0; oy < scale; oy++) {
-                        if (x + ix + ox < 0 || x + ix + ox > width || y + iy + oy < 0 || y + iy + oy > height)
-                            continue;
+                if (x + ix + scale < 0 || x + ix > width || y + iy + scale < 0 || y + iy > height)
+                    continue;
 
-                        draw(x + ix + ox, y + iy + oy, new byte[]{
-                                wrapped.get(i + 3 + 8),
-                                wrapped.get(i + 2 + 8),
-                                wrapped.get(i + 1 + 8),
-                                wrapped.get(i + 8)
-                        });
-                    }
-                }
+                fillRect(x + ix, y + iy, scale, scale, new byte[]{
+                        wrapped.get(i + 3 + 8),
+                        wrapped.get(i + 2 + 8),
+                        wrapped.get(i + 1 + 8),
+                        wrapped.get(i + 8)
+                });
             }
 
             ix += scale;
