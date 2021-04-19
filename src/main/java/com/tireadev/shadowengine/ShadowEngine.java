@@ -23,7 +23,7 @@ public abstract class ShadowEngine {
     public static ShadowEngine instance;
 
     private static EPlatform platform;
-    public static final String version = "preview-1.2.2";
+    public static final String version = "preview-1.2.3";
 
     // Abstract =======================================================
     public abstract void onAwake();
@@ -350,19 +350,28 @@ public abstract class ShadowEngine {
     public void drawCircle(int x, int y, int r, final byte[] c) {
         if (r < 0) return;
 
-        int y1, x1;
+        float theta = (float)d2r;
+        float cs = (float)Math.cos(theta);//precalculate the sine and cosine
+        float sn = (float)Math.sin(theta);
+        float t;
 
-        for (y1 = r; y1 >= -r; y1--) {
-            x1 = (int)Math.sqrt(r*r - y1*y1);
-            draw(x - x1, y + y1, c);
-            draw(x + x1, y + y1, c);
-        }
+        float x1 = r;//we start at angle = 0
+        float y1 = 0;
 
-        for (x1 = r; x1 >= -r; x1--) {
-            y1 = (int)Math.sqrt(r*r - x1*x1);
-            draw(x + x1, y + y1, c);
-            draw(x + x1, y - y1, c);
+        float[] cf = byteColorToFloat(c);
+
+        glBegin(GL_LINE_LOOP);
+        glColor4f(cf[0], cf[1], cf[2], cf[3]);
+        for(int ii = 0; ii < 360; ii++)
+        {
+            glVertex2f((2f*(x + x1) / width - 1), -(2f*(y + y1) / height - 1));//output vertex
+
+            //apply the rotation matrix
+            t = x1;
+            x1 = cs * x1 - sn * y1;
+            y1 = sn * t + cs * y1;
         }
+        glEnd();
     }
 
     public void fillCircle(Vec2i pos, int r, final byte[] c) {
@@ -370,12 +379,29 @@ public abstract class ShadowEngine {
     }
     public void fillCircle(int x, int y, int r, final byte[] c) {
         if (r < 0) return;
-        drawCircle(x, y, r, c);
-        int y1, x1;
-        for (y1 = r; y1 >= -r; y1--) {
-            x1 = (int)Math.sqrt(r*r - y1*y1);
-            drawLine(x - x1, y + y1, x + x1, y + y1, c);
+
+        float theta = (float)d2r;
+        float cs = (float)Math.cos(theta);//precalculate the sine and cosine
+        float sn = (float)Math.sin(theta);
+        float t;
+
+        float x1 = r;//we start at angle = 0
+        float y1 = 0;
+
+        float[] cf = byteColorToFloat(c);
+
+        glBegin(GL_POLYGON);
+        glColor4f(cf[0], cf[1], cf[2], cf[3]);
+        for(int ii = 0; ii < 360; ii++)
+        {
+            glVertex2f((2f*(x + x1) / width - 1), -(2f*(y + y1) / height - 1));//output vertex
+
+            //apply the rotation matrix
+            t = x1;
+            x1 = cs * x1 - sn * y1;
+            y1 = sn * t + cs * y1;
         }
+        glEnd();
     }
 
 
@@ -442,9 +468,6 @@ public abstract class ShadowEngine {
 
         for (ix = 0, iy = 0, i = 0; i + 3 + 8 < data.length; i += 4) {
             if (wrapped.get(i + 8) != 0) {
-                if (x + ix + scale < 0 || x + ix > width || y + iy + scale < 0 || y + iy > height)
-                    continue;
-
                 fillRect(x + ix, y + iy, scale, scale, new byte[]{
                         wrapped.get(i + 3 + 8),
                         wrapped.get(i + 2 + 8),
