@@ -279,6 +279,7 @@ public abstract class ShadowEngine {
     }
     public void draw(int x, int y, final byte[] c) {
         if (x < 0 || x > width || y < 0 || y > height) return;
+
         float[] cf = byteColorToFloat(c);
         glBegin(GL_POINTS);
         glColor4f(cf[0], cf[1], cf[2], cf[3]);
@@ -290,6 +291,10 @@ public abstract class ShadowEngine {
         drawLine(p1.x, p1.y, p2.x, p2.y, c);
     }
     public void drawLine(int x1, int y1, int x2, int y2, final byte[] c) {
+        if ((x1 < 0 || x1 > width || y1 < 0 || y1 > height) &&
+            (x2 < 0 || x2 > width || y2 < 0 || y2 > height)
+        ) return;
+
         float[] cf = byteColorToFloat(c);
         glBegin(GL_LINES);
         glColor4f(cf[0], cf[1], cf[2], cf[3]);
@@ -302,6 +307,11 @@ public abstract class ShadowEngine {
         drawTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c);
     }
     public void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, final byte[] c) {
+        if ((x1 < 0 || x1 > width || y1 < 0 || y1 > height) &&
+            (x2 < 0 || x2 > width || y2 < 0 || y2 > height) &&
+            (x3 < 0 || x3 > width || y3 < 0 || y3 > height)
+        ) return;
+
         drawLine(x1, y1, x2, y2, c);
         drawLine(x2, y2, x3, y3, c);
         drawLine(x3, y3, x1, y1, c);
@@ -311,6 +321,11 @@ public abstract class ShadowEngine {
         fillTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c);
     }
     public void fillTriangle(int x1, int y1, int x2, int y2, int x3, int y3, final byte[] c) {
+        if ((x1 < 0 || x1 > width || y1 < 0 || y1 > height) &&
+            (x2 < 0 || x2 > width || y2 < 0 || y2 > height) &&
+            (x3 < 0 || x3 > width || y3 < 0 || y3 > height)
+        ) return;
+
         float[] cf = byteColorToFloat(c);
         glBegin(GL_TRIANGLES);
         glColor4f(cf[0], cf[1], cf[2], cf[3]);
@@ -324,6 +339,8 @@ public abstract class ShadowEngine {
         drawRect(pos.x, pos.y, size.x, size.y, c);
     }
     public void drawRect(int x, int y, int w, int h, final byte[] c) {
+        if (x + w < 0 || x > width || y + h < 0 || y > height) return;
+
         drawLine(x, y, x + w, y, c);
         drawLine(x + w, y, x + w, y + h, c);
         drawLine(x + w, y + h, x, y + h, c);
@@ -334,6 +351,8 @@ public abstract class ShadowEngine {
         fillRect(pos.x, pos.y, size.x, size.y, c);
     }
     public void fillRect(int x, int y, int w, int h, final byte[] c) {
+        if (x + w < 0 || x > width || y + h < 0 || y > height) return;
+
         float[] cf = byteColorToFloat(c);
         glBegin(GL_POLYGON);
         glColor4f(cf[0], cf[1], cf[2], cf[3]);
@@ -344,18 +363,20 @@ public abstract class ShadowEngine {
         glEnd();
     }
 
+    /*  circle algorithm from http://slabode.exofire.net/circle_draw.shtml  */
     public void drawCircle(Vec2i pos, int r, final byte[] c) {
         drawCircle(pos.x, pos.y, r, c);
     }
     public void drawCircle(int x, int y, int r, final byte[] c) {
         if (r < 0) return;
+        if (x + r < 0 || x - r > width || y + r < 0 || y - r > height) return;
 
         float theta = (float)d2r;
-        float cs = (float)Math.cos(theta);//precalculate the sine and cosine
+        float cs = (float)Math.cos(theta);
         float sn = (float)Math.sin(theta);
         float t;
 
-        float x1 = r;//we start at angle = 0
+        float x1 = r;
         float y1 = 0;
 
         float[] cf = byteColorToFloat(c);
@@ -364,9 +385,8 @@ public abstract class ShadowEngine {
         glColor4f(cf[0], cf[1], cf[2], cf[3]);
         for(int ii = 0; ii < 360; ii++)
         {
-            glVertex2f((2f*(x + x1) / width - 1), -(2f*(y + y1) / height - 1));//output vertex
+            glVertex2f((2f*(x + x1) / width - 1), -(2f*(y + y1) / height - 1));
 
-            //apply the rotation matrix
             t = x1;
             x1 = cs * x1 - sn * y1;
             y1 = sn * t + cs * y1;
@@ -374,18 +394,20 @@ public abstract class ShadowEngine {
         glEnd();
     }
 
+    /*  circle algorithm from http://slabode.exofire.net/circle_draw.shtml  */
     public void fillCircle(Vec2i pos, int r, final byte[] c) {
         fillCircle(pos.x, pos.y, r, c);
     }
     public void fillCircle(int x, int y, int r, final byte[] c) {
         if (r < 0) return;
+        if (x + r < 0 || x - r > width || y + r < 0 || y - r > height) return;
 
         float theta = (float)d2r;
-        float cs = (float)Math.cos(theta);//precalculate the sine and cosine
+        float cs = (float)Math.cos(theta);
         float sn = (float)Math.sin(theta);
         float t;
 
-        float x1 = r;//we start at angle = 0
+        float x1 = r;
         float y1 = 0;
 
         float[] cf = byteColorToFloat(c);
@@ -394,9 +416,8 @@ public abstract class ShadowEngine {
         glColor4f(cf[0], cf[1], cf[2], cf[3]);
         for(int ii = 0; ii < 360; ii++)
         {
-            glVertex2f((2f*(x + x1) / width - 1), -(2f*(y + y1) / height - 1));//output vertex
+            glVertex2f((2f*(x + x1) / width - 1), -(2f*(y + y1) / height - 1));
 
-            //apply the rotation matrix
             t = x1;
             x1 = cs * x1 - sn * y1;
             y1 = sn * t + cs * y1;
