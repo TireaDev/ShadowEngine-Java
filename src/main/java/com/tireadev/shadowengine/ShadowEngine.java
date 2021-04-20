@@ -4,6 +4,7 @@ import com.tireadev.shadowengine.math.Vec2f;
 import com.tireadev.shadowengine.math.Vec2i;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.system.Platform;
 
 import javax.imageio.ImageIO;
 import javax.sound.sampled.*;
@@ -22,8 +23,9 @@ public abstract class ShadowEngine {
 
     public static ShadowEngine instance;
 
-    private static EPlatform platform;
-    public static final String version = "preview-1.2.3";
+    private static Platform platform;
+    public static final String version = "preview-1.2.4";
+
 
     // Abstract =======================================================
     public abstract void onAwake();
@@ -44,18 +46,12 @@ public abstract class ShadowEngine {
     public boolean construct(int width, int height, String title, boolean vsync, boolean hideCursor) {
         GLFWErrorCallback.createPrint(System.err).set();
 
-        String platformString = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
+        platform = Platform.get();
 
-        if (platformString.contains("mac") || platformString.contains("darwin"))
-            platform = EPlatform.MACOS;
-        else if (platformString.contains("win"))
-            platform = EPlatform.WINDOWS;
-        else if (platformString.contains("nux"))
-            platform = EPlatform.LINUX;
-        else
-            platform = EPlatform.OTHER;
-
-
+        if (platform == Platform.MACOSX) {
+            System.setProperty("java.awt.headless", "true");
+            java.awt.Toolkit.getDefaultToolkit();
+        }
 
         if (!glfwInit()) return false;
 
@@ -104,9 +100,9 @@ public abstract class ShadowEngine {
         currentTime = System.nanoTime();
         onAwake();
 
-        System.out.println("Running on ShadowEngine");
-        System.out.println("version:\t" + version);
-        System.out.println("platform:\t" + platform);
+        System.out.println("Running using ShadowEngine");
+        System.out.println("version:  " + version);
+        System.out.println("platform: " + platform.getName().toUpperCase(Locale.ENGLISH));
 
         return true;
     }
@@ -169,8 +165,8 @@ public abstract class ShadowEngine {
         return toReturn;
     }
 
-    public static EPlatform getPlatform() {
-        return platform;
+    public static String getPlatform() {
+        return platform.getName().toUpperCase(Locale.ENGLISH);
     }
 
 
