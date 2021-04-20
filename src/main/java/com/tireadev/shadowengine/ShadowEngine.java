@@ -24,7 +24,7 @@ public abstract class ShadowEngine {
     public static ShadowEngine instance;
 
     private static Platform platform;
-    public static final String version = "preview-1.2.4";
+    public static final String version = "1.2.0";
 
 
     // Abstract =======================================================
@@ -50,7 +50,6 @@ public abstract class ShadowEngine {
 
         if (platform == Platform.MACOSX) {
             System.setProperty("java.awt.headless", "true");
-            java.awt.Toolkit.getDefaultToolkit();
         }
 
         if (!glfwInit()) return false;
@@ -101,8 +100,8 @@ public abstract class ShadowEngine {
         onAwake();
 
         System.out.println("Running using ShadowEngine");
-        System.out.println("version:  " + version);
-        System.out.println("platform: " + platform.getName().toUpperCase(Locale.ENGLISH));
+        System.out.println("version:\t" + version);
+        System.out.println("platform:\t" + platform.getName().toUpperCase(Locale.ENGLISH));
 
         return true;
     }
