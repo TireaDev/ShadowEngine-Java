@@ -275,11 +275,7 @@ public abstract class ShadowEngine {
     public void draw(int x, int y, final byte[] c) {
         if (x < 0 || x > width || y < 0 || y > height) return;
 
-        float[] cf = byteColorToFloat(c);
-        glBegin(GL_POINTS);
-        glColor4f(cf[0], cf[1], cf[2], cf[3]);
-        glVertex2f((2f*x / width - 1), -(2f*y / height - 1));
-        glEnd();
+        fillRect(x, y, 1, 1, c);
     }
 
     public void drawLine(Vec2i p1, Vec2i p2, final byte[] c) {
@@ -366,7 +362,8 @@ public abstract class ShadowEngine {
         if (r < 0) return;
         if (x + r < 0 || x - r > width || y + r < 0 || y - r > height) return;
 
-        float theta = (float)d2r;
+        int ns = (int)(10 * Math.sqrt(r));
+        float theta = (float)(2 * Math.PI / (float)ns);
         float cs = (float)Math.cos(theta);
         float sn = (float)Math.sin(theta);
         float t;
@@ -378,7 +375,7 @@ public abstract class ShadowEngine {
 
         glBegin(GL_LINE_LOOP);
         glColor4f(cf[0], cf[1], cf[2], cf[3]);
-        for(int ii = 0; ii < 360; ii++)
+        for(int ii = 0; ii < ns; ii++)
         {
             glVertex2f((2f*(x + x1) / width - 1), -(2f*(y + y1) / height - 1));
 
@@ -397,7 +394,8 @@ public abstract class ShadowEngine {
         if (r < 0) return;
         if (x + r < 0 || x - r > width || y + r < 0 || y - r > height) return;
 
-        float theta = (float)d2r;
+        int ns = (int)(10 * Math.sqrt(r));
+        float theta = (float)(2 * Math.PI / (float)ns);
         float cs = (float)Math.cos(theta);
         float sn = (float)Math.sin(theta);
         float t;
@@ -409,7 +407,7 @@ public abstract class ShadowEngine {
 
         glBegin(GL_POLYGON);
         glColor4f(cf[0], cf[1], cf[2], cf[3]);
-        for(int ii = 0; ii < 360; ii++)
+        for(int ii = 0; ii < ns; ii++)
         {
             glVertex2f((2f*(x + x1) / width - 1), -(2f*(y + y1) / height - 1));
 
