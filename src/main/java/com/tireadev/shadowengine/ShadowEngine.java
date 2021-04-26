@@ -4,12 +4,17 @@ import com.tireadev.shadowengine.math.Vec2f;
 import com.tireadev.shadowengine.math.Vec2i;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.system.Platform;
 
 import javax.imageio.ImageIO;
+import javax.sound.sampled.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.awt.image.RasterFormatException;
-import java.io.IOException;
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Locale;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -17,6 +22,10 @@ import static org.lwjgl.opengl.GL11.*;
 public abstract class ShadowEngine {
 
     public static ShadowEngine instance;
+
+    private static Platform platform;
+    public static final String version = "1.2.0";
+
 
     // Abstract =======================================================
     public abstract void onAwake();
@@ -36,6 +45,12 @@ public abstract class ShadowEngine {
 
     public boolean construct(int width, int height, String title, boolean vsync, boolean hideCursor) {
         GLFWErrorCallback.createPrint(System.err).set();
+
+        platform = Platform.get();
+
+        if (platform == Platform.MACOSX) {
+            System.setProperty("java.awt.headless", "true");
+        }
 
         if (!glfwInit()) return false;
 
@@ -83,6 +98,10 @@ public abstract class ShadowEngine {
 
         currentTime = System.nanoTime();
         onAwake();
+
+        System.out.println("Running using ShadowEngine");
+        System.out.println("version:\t" + version);
+        System.out.println("platform:\t" + platform.getName().toUpperCase(Locale.ENGLISH));
 
         return true;
     }
@@ -132,10 +151,10 @@ public abstract class ShadowEngine {
 
 
     // Util ===========================================================
-    static final double pi180 = Math.PI / 180;
+    static final double d2r = Math.PI / 180.;
 
     public static double degToRad(float deg) {
-        return deg * pi180;
+        return deg * d2r;
     }
 
     public static float[] byteColorToFloat(final byte[] b) {
@@ -143,6 +162,10 @@ public abstract class ShadowEngine {
         float[] toReturn = new float[l];
         for (i = 0; i < l; i++) toReturn[i] = Byte.toUnsignedInt(b[i]) / 255f;
         return toReturn;
+    }
+
+    public static String getPlatform() {
+        return platform.getName().toUpperCase(Locale.ENGLISH);
     }
 
 
@@ -219,7 +242,7 @@ public abstract class ShadowEngine {
     }
 
 
-    // Drawing
+    // Drawing ========================================================
     public static final byte[] BLACK          = new byte[] { (byte) 12, (byte) 12, (byte) 12, (byte) 255 };
     public static final byte[] DARK_BLUE      = new byte[] { (byte)  0, (byte) 55, (byte)218, (byte) 255 };
     public static final byte[] DARK_GREEN     = new byte[] { (byte) 19, (byte)161, (byte) 14, (byte) 255 };
@@ -250,83 +273,36 @@ public abstract class ShadowEngine {
         draw(pos.x, pos.y, c);
     }
     public void draw(int x, int y, final byte[] c) {
-        float fx = 2f*x / width - 1;
-        float fy = -(2f*y / height - 1);
+        if (x < 0 || x > width || y < 0 || y > height) return;
 
-        glBegin(GL_POINTS);
-        glColor4ub(c[0], c[1], c[2], c[3]);
-        glVertex2f(fx, fy);
-        glEnd();
+        fillRect(x, y, 1, 1, c);
     }
 
     public void drawLine(Vec2i p1, Vec2i p2, final byte[] c) {
         drawLine(p1.x, p1.y, p2.x, p2.y, c);
     }
     public void drawLine(int x1, int y1, int x2, int y2, final byte[] c) {
-        int x, y, dx, dy, dx1, dy1, px, py, xe, ye, i;
-        dx = x2 - x1;
-        dy = y2 - y1;
+        if ((x1 < 0 || x1 > width || y1 < 0 || y1 > height) &&
+            (x2 < 0 || x2 > width || y2 < 0 || y2 > height)
+        ) return;
 
-        if (dx == 0) {
-            if (y2 < y1) { int tmp = y2; y2 = y1; y1 = tmp; }
-            for (y = y1; y <= y2; y++) draw(x1, y, c);
-            return;
-        }
-
-        if (dy == 0) {
-            if (x2 < x1) { int tmp = x2; x2 = x1; x1 = tmp; }
-            for (x = x1; x <= x2; x++) draw(x, y1, c);
-            return;
-        }
-
-        dx1 = Math.abs(dx);
-        dy1 = Math.abs(dy);
-        px = 2 * dy1 - dx1;
-        py = 2 * dx1 - dy1;
-        if (dy1 <= dx1) {
-            if (dx >= 0) {
-                x = x1; y = y1; xe = x2;
-            } else {
-                x = x2; y = y2; xe = x1;
-            }
-
-            draw(x, y, c);
-
-            for (i = 0; x < xe; i++) {
-                x = x + 1;
-                if (px < 0) px = px + 2 * dy1;
-                else {
-                    if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) y = y + 1; else y = y - 1;
-                    px = px + 2* (dy1 - dx1);
-                }
-                draw(x, y, c);
-            }
-        }
-        else {
-            if (dy >= 0) {
-                x = x1; y = y1; ye = y2;
-            } else {
-                x = x2; y = y2; ye = y1;
-            }
-
-            draw(x, y, c);
-
-            for (i = 0; y < ye; i++) {
-                y = y + 1;
-                if (py <= 0) py = py + 2 * dx1;
-                else {
-                    if ((dx < 0 && dy < 0) || (dx > 0 && dy > 0)) x = x + 1; else x = x - 1;
-                    py = py + 2 * (dx1 - dy1);
-                }
-                draw(x, y, c);
-            }
-        }
+        float[] cf = byteColorToFloat(c);
+        glBegin(GL_LINES);
+        glColor4f(cf[0], cf[1], cf[2], cf[3]);
+        glVertex2f((2f*x1 / width - 1), -(2f*y1 / height - 1));
+        glVertex2f((2f*x2 / width - 1), -(2f*y2 / height - 1));
+        glEnd();
     }
 
     public void drawTriangle(Vec2i p1, Vec2i p2, Vec2i p3, final byte[] c) {
         drawTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c);
     }
     public void drawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, final byte[] c) {
+        if ((x1 < 0 || x1 > width || y1 < 0 || y1 > height) &&
+            (x2 < 0 || x2 > width || y2 < 0 || y2 > height) &&
+            (x3 < 0 || x3 > width || y3 < 0 || y3 > height)
+        ) return;
+
         drawLine(x1, y1, x2, y2, c);
         drawLine(x2, y2, x3, y3, c);
         drawLine(x3, y3, x1, y1, c);
@@ -336,98 +312,26 @@ public abstract class ShadowEngine {
         fillTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, c);
     }
     public void fillTriangle(int x1, int y1, int x2, int y2, int x3, int y3, final byte[] c) {
-        int tmp;
+        if ((x1 < 0 || x1 > width || y1 < 0 || y1 > height) &&
+            (x2 < 0 || x2 > width || y2 < 0 || y2 > height) &&
+            (x3 < 0 || x3 > width || y3 < 0 || y3 > height)
+        ) return;
 
-        if (y1 > y2) {
-            tmp = y1;
-            y1  = y2;
-            y2  = tmp;
-
-            tmp = x1;
-            x1  = x2;
-            x2  = tmp;
-        }
-
-        if (y2 > y3) {
-            tmp = y2;
-            y2 = y3;
-            y3 = tmp;
-
-            tmp = x2;
-            x2 = x3;
-            x3 = tmp;
-        }
-
-        if (y1 > y2) {
-            tmp = y1;
-            y1  = y2;
-            y2  = tmp;
-
-            tmp = x1;
-            x1  = x2;
-            x2  = tmp;
-        }
-
-        if (y2 == y3) {
-            float is1 = (x2 - x1) / (float)(y2 - y1);
-            float is2 = (x3 - x1) / (float)(y3 - y1);
-
-            float cx1 = x1;
-            float cx2 = x1;
-
-            for (int sy = y1; sy <= y2; sy++) {
-                drawLine((int)cx1, sy, (int)cx2, sy, c);
-                cx1 += is1;
-                cx2 += is2;
-            }
-        } else if (y1 == y2) {
-            float is1 = (x3 - x1) / (float)(y3 - y1);
-            float is2 = (x3 - x2) / (float)(y3 - y2);
-
-            float cx1 = x3;
-            float cx2 = x3;
-
-            for (int sy = y3; sy > y1; sy--) {
-                drawLine((int)cx1, sy, (int)cx2, sy, c);
-                cx1 -= is1;
-                cx2 -= is2;
-            }
-        } else {
-            int x4, y4;
-
-            x4 = (int)(x1 + ((float)(y2 - y1) / (float)(y3 - y1)) * (x3 - x1));
-            y4 = y2;
-
-            float is1 = (x2 - x1) / (float)(y2 - y1);
-            float is2 = (x4 - x1) / (float)(y4 - y1);
-
-            float cx1 = x1;
-            float cx2 = x1;
-
-            for (int sy = y1; sy <= y2; sy++) {
-                drawLine((int)cx1, sy, (int)cx2, sy, c);
-                cx1 += is1;
-                cx2 += is2;
-            }
-
-            is1 = (x3 - x2) / (float)(y3 - y2);
-            is2 = (x3 - x4) / (float)(y3 - y4);
-
-            cx1 = x3;
-            cx2 = x3;
-
-            for (int sy = y3; sy > y2; sy--) {
-                drawLine((int)cx1, sy, (int)cx2, sy, c);
-                cx1 -= is1;
-                cx2 -= is2;
-            }
-        }
+        float[] cf = byteColorToFloat(c);
+        glBegin(GL_TRIANGLES);
+        glColor4f(cf[0], cf[1], cf[2], cf[3]);
+        glVertex2f((2f*x1 / width - 1), -(2f*y1 / height - 1));
+        glVertex2f((2f*x2 / width - 1), -(2f*y2 / height - 1));
+        glVertex2f((2f*x3 / width - 1), -(2f*y3 / height - 1));
+        glEnd();
     }
 
     public void drawRect(Vec2i pos, Vec2i size, final byte[] c) {
         drawRect(pos.x, pos.y, size.x, size.y, c);
     }
     public void drawRect(int x, int y, int w, int h, final byte[] c) {
+        if (x + w < 0 || x > width || y + h < 0 || y > height) return;
+
         drawLine(x, y, x + w, y, c);
         drawLine(x + w, y, x + w, y + h, c);
         drawLine(x + w, y + h, x, y + h, c);
@@ -438,117 +342,238 @@ public abstract class ShadowEngine {
         fillRect(pos.x, pos.y, size.x, size.y, c);
     }
     public void fillRect(int x, int y, int w, int h, final byte[] c) {
-        int x2 = x + w;
-        int y2 = y + h;
+        if (x + w < 0 || x > width || y + h < 0 || y > height) return;
 
-        if (x2 < x) {
-            int tmp = x2;
-            x2 = x;
-            x = tmp;
-        }
-
-        if (y2 < y) {
-            int tmp = y2;
-            y2 = y;
-            y = tmp;
-        }
-
-        for (int i = x; i <= x2; i++)
-            for (int j = y; j <= y2; j++)
-                draw(i, j, c);
+        float[] cf = byteColorToFloat(c);
+        glBegin(GL_POLYGON);
+        glColor4f(cf[0], cf[1], cf[2], cf[3]);
+        glVertex2f((2f*x / width - 1), -(2f*y / height - 1));
+        glVertex2f((2f*(x+w) / width - 1), -(2f*y / height - 1));
+        glVertex2f((2f*(x+w) / width - 1), -(2f*(y+h) / height - 1));
+        glVertex2f((2f*x / width - 1), -(2f*(y+h) / height - 1));
+        glEnd();
     }
 
+    /*  circle algorithm from http://slabode.exofire.net/circle_draw.shtml  */
     public void drawCircle(Vec2i pos, int r, final byte[] c) {
         drawCircle(pos.x, pos.y, r, c);
     }
     public void drawCircle(int x, int y, int r, final byte[] c) {
         if (r < 0) return;
+        if (x + r < 0 || x - r > width || y + r < 0 || y - r > height) return;
 
-        int y1, x1;
+        int ns = (int)(10 * Math.sqrt(r));
+        float theta = (float)(2 * Math.PI / (float)ns);
+        float cs = (float)Math.cos(theta);
+        float sn = (float)Math.sin(theta);
+        float t;
 
-        for (y1 = r; y1 >= -r; y1--) {
-            x1 = (int)Math.sqrt(r*r - y1*y1);
-            draw(x - x1, y + y1, c);
-            draw(x + x1, y + y1, c);
+        float x1 = r;
+        float y1 = 0;
+
+        float[] cf = byteColorToFloat(c);
+
+        glBegin(GL_LINE_LOOP);
+        glColor4f(cf[0], cf[1], cf[2], cf[3]);
+        for(int ii = 0; ii < ns; ii++)
+        {
+            glVertex2f((2f*(x + x1) / width - 1), -(2f*(y + y1) / height - 1));
+
+            t = x1;
+            x1 = cs * x1 - sn * y1;
+            y1 = sn * t + cs * y1;
         }
-
-        for (x1 = r; x1 >= -r; x1--) {
-            y1 = (int)Math.sqrt(r*r - x1*x1);
-            draw(x + x1, y + y1, c);
-            draw(x + x1, y - y1, c);
-        }
+        glEnd();
     }
 
+    /*  circle algorithm from http://slabode.exofire.net/circle_draw.shtml  */
     public void fillCircle(Vec2i pos, int r, final byte[] c) {
         fillCircle(pos.x, pos.y, r, c);
     }
     public void fillCircle(int x, int y, int r, final byte[] c) {
         if (r < 0) return;
-        int y1, x1;
-        for (y1 = r; y1 >= -r; y1--) {
-            x1 = (int)Math.sqrt(r*r - y1*y1);
-            drawLine(x - x1, y + y1, x + x1, y + y1, c);
+        if (x + r < 0 || x - r > width || y + r < 0 || y - r > height) return;
+
+        int ns = (int)(10 * Math.sqrt(r));
+        float theta = (float)(2 * Math.PI / (float)ns);
+        float cs = (float)Math.cos(theta);
+        float sn = (float)Math.sin(theta);
+        float t;
+
+        float x1 = r;
+        float y1 = 0;
+
+        float[] cf = byteColorToFloat(c);
+
+        glBegin(GL_POLYGON);
+        glColor4f(cf[0], cf[1], cf[2], cf[3]);
+        for(int ii = 0; ii < ns; ii++)
+        {
+            glVertex2f((2f*(x + x1) / width - 1), -(2f*(y + y1) / height - 1));
+
+            t = x1;
+            x1 = cs * x1 - sn * y1;
+            y1 = sn * t + cs * y1;
         }
+        glEnd();
     }
 
+
+    // Image ==========================================================
     public byte[] loadImage(String path) {
-        BufferedImage image;
-        byte[] data;
-
         try {
-            image = ImageIO.read(this.getClass().getResource(path));
-            data = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
-        } catch (IOException | IllegalArgumentException e) {
-            System.err.println("Failed to load image: " + path);
-            data = new byte[0];
-        }
+            BufferedImage image;
+            byte[] data;
 
-        return data;
+            image = ImageIO.read(new File(path));
+            byte[] buffer = ((DataBufferByte) image.getRaster().getDataBuffer()).getData();
+            data = ByteBuffer
+                    .allocate(8 + buffer.length)
+                    .putInt(image.getWidth())
+                    .putInt(image.getHeight())
+                    .put(buffer)
+                    .array();
+
+            return data;
+        } catch (IOException | IllegalArgumentException | RasterFormatException e) {
+            System.err.println("Failed to load image:\n\tpath: " + path + "\n\t" + e.getLocalizedMessage());
+            return null;
+        }
     }
 
     public byte[] loadImage(String path, int x, int y, int w, int h) {
-        BufferedImage image, subImg, toReturn;
-        byte[] data;
-
         try {
-            image = ImageIO.read(this.getClass().getResource(path));
+            BufferedImage image, subImg, finalImg;
+            byte[] data;
+
+            image = ImageIO.read(new File(path));
             subImg = image.getSubimage(x, y, w, h);
-            toReturn = new BufferedImage(
+            finalImg = new BufferedImage(
                     image.getColorModel(),
                     image.getRaster().createCompatibleWritableRaster(w, h),
                     image.isAlphaPremultiplied(),
                     null);
-            subImg.copyData(toReturn.getRaster());
-            data = ((DataBufferByte) toReturn.getRaster().getDataBuffer()).getData();
+            subImg.copyData(finalImg.getRaster());
+            byte[] buffer = ((DataBufferByte) finalImg.getRaster().getDataBuffer()).getData();
+            data = ByteBuffer
+                    .allocate(8 + buffer.length)
+                    .putInt(finalImg.getWidth())
+                    .putInt(finalImg.getHeight())
+                    .put(buffer)
+                    .array();
+
+            return data;
         } catch (IOException | IllegalArgumentException | RasterFormatException e) {
-            System.err.println("Failed to load image: " + path);
-            e.printStackTrace();
-            data = new byte[0];
+            System.err.println("Failed to load image:\n\tpath: " + path + "\n\t" + e.getLocalizedMessage());
+            return null;
         }
-
-        return data;
     }
 
-    int ix, iy, i, ox, oy;
-    public void drawImage(Vec2i pos, int w, byte[] data, int scale) {
-        drawImage(pos.x, pos.y, w, data, scale);
+    public void drawImage(Vec2i pos, byte[] data, int scale) {
+        drawImage(pos.x, pos.y, data, scale);
     }
-    public void drawImage(int x, int y, int w, byte[] data, int scale) {
-        if (data.length > 0) {
-            for (ix = 0, iy = 0, i = 0; i + 3 < data.length; i += 4) {
-                if (data[i] != 0)
-                    for (ox = 0; ox < scale; ox++)
-                        for (oy = 0; oy < scale; oy++)
-                            draw(x + ix + ox, y + iy + oy, new byte[] {
-                                    data[i + 3], data[i + 2], data[i + 1], data[i]
-                            });
+    public void drawImage(int x, int y, byte[] data, int scale) {
+        if (data.length <= 8) return;
 
-                ix += scale;
-                if (ix == w * scale) {
-                    ix = 0;
-                    iy += scale;
-                }
+        int ix, iy, i;
+
+        ByteBuffer wrapped = ByteBuffer.wrap(data);
+        int w = wrapped.getInt();
+
+        for (ix = 0, iy = 0, i = 0; i + 3 + 8 < data.length; i += 4) {
+            if (wrapped.get(i + 8) != 0) {
+                fillRect(x + ix, y + iy, scale, scale, new byte[]{
+                        wrapped.get(i + 3 + 8),
+                        wrapped.get(i + 2 + 8),
+                        wrapped.get(i + 1 + 8),
+                        wrapped.get(i + 8)
+                });
             }
+
+            ix += scale;
+            if (ix == w * scale) {
+                ix = 0;
+                iy += scale;
+            }
+        }
+    }
+
+    public int getImageWidth(byte[] data) {
+        if (data.length < 4) return 0;
+        ByteBuffer wrapped = ByteBuffer.wrap(data);
+        return wrapped.getInt();
+    }
+
+    public int getImageHeight(byte[] data) {
+        if (data.length < 8) return 0;
+        ByteBuffer wrapped = ByteBuffer.wrap(data);
+        wrapped.getInt();
+        return wrapped.getInt();
+    }
+
+
+    // Sound ==========================================================
+    public byte[] loadSound(String path) {
+        try {
+            AudioInputStream ais;
+            ByteBuffer toReturn;
+
+            ais = AudioSystem.getAudioInputStream(new File(path));
+            byte[] buffer = new byte[1024 * 32];
+            int read = 0;
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(buffer.length);
+
+            while ((read = ais.read(buffer, 0, buffer.length)) != -1) {
+                baos.write(buffer, 0, read);
+            }
+
+            AudioInputStream reusableAis = new AudioInputStream(
+                    new ByteArrayInputStream(baos.toByteArray()),
+                    ais.getFormat(),
+                    AudioSystem.NOT_SPECIFIED
+            );
+
+            // float sampleRate, int sampleSizeInBits, int channels, boolean signed, boolean bigEndian
+            ByteBuffer format = ByteBuffer.allocate(4 + 4 + 4 + 1 + 1);
+            AudioFormat aisFormat = ais.getFormat();
+            format.putFloat(aisFormat.getSampleRate())
+                    .putInt(aisFormat.getSampleSizeInBits())
+                    .putInt(aisFormat.getChannels())
+                    .put(aisFormat.getEncoding().equals(AudioFormat.Encoding.PCM_SIGNED) ? (byte) 1 : (byte) 0)
+                    .put(aisFormat.isBigEndian() ? (byte) 1 : (byte) 0);
+
+            toReturn = ByteBuffer
+                    .allocate(format.array().length + baos.size())
+                    .put(format.array())
+                    .put(baos.toByteArray());
+
+            ais.close();
+
+            return toReturn.array();
+        } catch (IOException | UnsupportedAudioFileException e) {
+            System.err.println("Failed to load sound:\n\tpath: " + path + "\n\t" + e.getLocalizedMessage());
+            return null;
+        }
+    }
+
+    public void playSound(byte[] data) {
+        ByteBuffer wrapped = ByteBuffer.wrap(data);
+        try {
+            AudioFormat af = new AudioFormat(
+                    wrapped.getFloat(),
+                    wrapped.getInt(),
+                    wrapped.getInt(),
+                    wrapped.get() == (byte) 1,
+                    wrapped.get() == (byte) 1
+            );
+            ByteArrayInputStream bais = new ByteArrayInputStream(Arrays.copyOfRange(wrapped.array(), 4 + 4 + 4 + 1 + 1, wrapped.array().length));
+            AudioInputStream ais = new AudioInputStream(bais, af, AudioSystem.NOT_SPECIFIED);
+            ais.reset();
+            Clip clip = AudioSystem.getClip();
+            clip.open(ais);
+            clip.start();
+        } catch (IOException | LineUnavailableException | IndexOutOfBoundsException e) {
+            System.err.println("Failed to play sound:\n\t" + e.getLocalizedMessage());
         }
     }
 }

@@ -17,29 +17,34 @@ public class Vec2i {
     public Vec2i(int x, int y) { this.x = x; this.y = y; }
     public Vec2i(Vec2i vec) { this.x = vec.x; this.y = vec.y; }
 
-    public void add(Vec2i vec) {
+    public Vec2i add(Vec2i vec) {
         this.x = this.x + vec.x;
         this.y = this.y + vec.y;
+        return this;
     }
 
-    public void sub(Vec2i vec) {
+    public Vec2i sub(Vec2i vec) {
         this.x = this.x - vec.x;
         this.y = this.y - vec.y;
+        return this;
     }
 
-    public void negate() {
+    public Vec2i negate() {
         this.x = this.x * -1;
         this.y = this.y * -1;
+        return this;
     }
 
-    public void scale(int n) {
+    public Vec2i scale(int n) {
         this.x = this.x * n;
         this.y = this.y * n;
+        return this;
     }
 
-    public void div(int n) {
+    public Vec2i div(int n) {
         this.x = this.x / n;
         this.y = this.y / n;
+        return this;
     }
 
     public float mag() { return mag(this); }
