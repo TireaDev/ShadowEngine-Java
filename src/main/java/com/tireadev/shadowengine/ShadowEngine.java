@@ -8,8 +8,10 @@ import org.lwjgl.system.Platform;
 
 import javax.imageio.ImageIO;
 import javax.sound.sampled.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
+import java.awt.image.Raster;
 import java.awt.image.RasterFormatException;
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -24,7 +26,7 @@ public abstract class ShadowEngine {
     public static ShadowEngine instance;
 
     private static Platform platform;
-    public static final String version = "1.2.0";
+    public static final String version = "1.2.3";
 
 
     // Abstract =======================================================
@@ -469,18 +471,51 @@ public abstract class ShadowEngine {
         }
     }
 
-    public void drawImage(Vec2i pos, byte[] data, int scale) {
-        drawImage(pos.x, pos.y, data, scale);
+    public byte[] getSubImage(byte[] image, int x, int y, int w, int h) {
+        BufferedImage srcImage, subImg, finalImg;
+        byte[] srcData, subData;
+
+        ByteBuffer wrappedData = ByteBuffer.wrap(image);
+        srcData = Arrays.copyOfRange(image, 8, image.length);
+
+        srcImage = new BufferedImage(wrappedData.getInt(), wrappedData.getInt(), BufferedImage.TYPE_4BYTE_ABGR);
+        srcImage.setData(Raster.createRaster(srcImage.getSampleModel(), new DataBufferByte(srcData, srcData.length), new Point()));
+
+        subImg = srcImage.getSubimage(x, y, w, h);
+        finalImg = new BufferedImage(
+                srcImage.getColorModel(),
+                srcImage.getRaster().createCompatibleWritableRaster(w, h),
+                srcImage.isAlphaPremultiplied(),
+                null);
+        subImg.copyData(finalImg.getRaster());
+        byte[] buffer = ((DataBufferByte) finalImg.getRaster().getDataBuffer()).getData();
+        subData = ByteBuffer
+                .allocate(8 + buffer.length)
+                .putInt(finalImg.getWidth())
+                .putInt(finalImg.getHeight())
+                .put(buffer)
+                .array();
+
+        return subData;
     }
-    public void drawImage(int x, int y, byte[] data, int scale) {
-        if (data.length <= 8) return;
+
+    public void drawImage(Vec2i pos, byte[] image, int scale) {
+        drawImage(pos.x, pos.y, image, scale);
+    }
+    public void drawImage(int x, int y, byte[] image, int scale) {
+        try {
+            if (image.length <= 8) return;
+        } catch (NullPointerException e) {
+            System.err.println("Failed to draw image:\n\timage array is NULL\n\t" + e.getLocalizedMessage());
+            return;
+        }
 
         int ix, iy, i;
 
-        ByteBuffer wrapped = ByteBuffer.wrap(data);
+        ByteBuffer wrapped = ByteBuffer.wrap(image);
         int w = wrapped.getInt();
 
-        for (ix = 0, iy = 0, i = 0; i + 3 + 8 < data.length; i += 4) {
+        for (ix = 0, iy = 0, i = 0; i + 3 + 8 < image.length; i += 4) {
             if (wrapped.get(i + 8) != 0) {
                 fillRect(x + ix, y + iy, scale, scale, new byte[]{
                         wrapped.get(i + 3 + 8),
@@ -498,15 +533,38 @@ public abstract class ShadowEngine {
         }
     }
 
-    public int getImageWidth(byte[] data) {
-        if (data.length < 4) return 0;
-        ByteBuffer wrapped = ByteBuffer.wrap(data);
+    public void drawText(String text, int x, int y, byte[][] font, int offset, int scale, boolean toUpperCase) {
+        try {
+            if (font.length == 0) return;
+        } catch (NullPointerException e) {
+            System.err.println("Failed to draw text:\n\tfont array is NULL\n\t" + e.getLocalizedMessage());
+            return;
+        }
+        int ii, l = text.length(), w = getImageWidth(font[0]);
+        if (toUpperCase) text = text.toUpperCase(Locale.ENGLISH);
+        for (ii = 0; ii < l; ii++) {
+            if (text.charAt(ii) == ' ') continue;
+            drawImage(x + ii * w * scale, y, font[text.charAt(ii) - offset], scale);
+        }
+    }
+
+    public int getImageWidth(byte[] image) {
+        try {
+            if (image.length < 8) return 0;
+        } catch (NullPointerException e) {
+            System.err.println("Failed to get image width:\n\timage array is NULL\n\t" + e.getLocalizedMessage());
+        }
+        ByteBuffer wrapped = ByteBuffer.wrap(image);
         return wrapped.getInt();
     }
 
-    public int getImageHeight(byte[] data) {
-        if (data.length < 8) return 0;
-        ByteBuffer wrapped = ByteBuffer.wrap(data);
+    public int getImageHeight(byte[] image) {
+        try {
+            if (image.length < 8) return 0;
+        } catch (NullPointerException e) {
+            System.err.println("Failed to get image height:\n\timage array is NULL\n\t" + e.getLocalizedMessage());
+        }
+        ByteBuffer wrapped = ByteBuffer.wrap(image);
         wrapped.getInt();
         return wrapped.getInt();
     }
