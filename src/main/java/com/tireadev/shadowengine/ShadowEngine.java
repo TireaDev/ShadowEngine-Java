@@ -26,7 +26,7 @@ public abstract class ShadowEngine {
     public static ShadowEngine instance;
 
     private static Platform platform;
-    public static final String version = "1.2.3";
+    public static final String version = "1.2.4";
 
 
     // Abstract =======================================================
@@ -75,8 +75,6 @@ public abstract class ShadowEngine {
         glfwSwapInterval(vsync ? 1 : 0);
         glfwSetInputMode(window, GLFW_CURSOR, hideCursor ? GLFW_CURSOR_HIDDEN : GLFW_CURSOR_NORMAL);
 
-        glfwShowWindow(window);
-
         glfwSetKeyCallback(window, (window1, key, scancode, action, mods) ->
             keys[key] = action == GLFW_PRESS || action == GLFW_REPEAT
         );
@@ -109,6 +107,7 @@ public abstract class ShadowEngine {
     }
 
     public void start() {
+        glfwShowWindow(window);
         onStart();
         while (!glfwWindowShouldClose(window)) {
             glfwPollEvents();
